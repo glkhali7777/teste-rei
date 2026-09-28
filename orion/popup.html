@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orion Control Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 420px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e5e7eb;
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #7c6ef0 0%, #3b82f6 100%);
+      padding: 20px;
+      text-align: center;
+      color: white;
+      border-bottom: 1px solid rgba(124, 110, 240, 0.3);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 16px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .section {
+      margin-bottom: 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(124, 110, 240, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .section-title {
+      font-size: 10px;
+      color: #7c6ef0;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(124, 110, 240, 0.1);
+    }
+
+    .status-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .status-indicator.active {
+      background: #10b981;
+      color: #10b981;
+    }
+
+    .status-indicator.inactive {
+      background: #ef4444;
+      color: #ef4444;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #7c6ef0;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+
+    button:first-of-type {
+      margin-top: 0;
+    }
+
+    .btn-primary {
+      background: #7c6ef0;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #6a5ed9;
+      box-shadow: 0 4px 12px rgba(124, 110, 240, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(124, 110, 240, 0.2);
+      color: #7c6ef0;
+      border: 1px solid rgba(124, 110, 240, 0.4);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(124, 110, 240, 0.3);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    .logs-container {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(124, 110, 240, 0.2);
+      border-radius: 6px;
+      padding: 10px;
+      max-height: 140px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 10px;
+      color: #7c6ef0;
+      line-height: 1.5;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-entry .time {
+      color: #666;
+      min-width: 55px;
+      flex-shrink: 0;
+    }
+
+    .log-entry .msg {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 10px;
+      font-size: 10px;
+      color: #666;
+      border-top: 1px solid rgba(124, 110, 240, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🟣 ORION</h1>
+    <p>Control Panel v1.0</p>
+  </div>
+
+  <div class="content">
+    <!-- Status Section -->
+    <div class="section">
+      <div class="section-title">Status</div>
+      <div class="status-row">
+        <span><span class="status-indicator inactive" id="status-dot"></span><span id="status-text">Detectando...</span></span>
+        <span id="status-time" style="font-size: 10px; color: #888;"></span>
+      </div>
+    </div>
+
+    <!-- Control Section -->
+    <div class="section">
+      <div class="section-title">Controles</div>
+      <label>
+        <input type="checkbox" id="orion-active-toggle">
+        <span>Ativar Orion</span>
+      </label>
+      <label>
+        <input type="checkbox" id="auto-analyze-toggle" checked>
+        <span>Análise Automática</span>
+      </label>
+    </div>
+
+    <!-- Actions Section -->
+    <div class="section">
+      <div class="section-title">Ações</div>
+      <button class="btn-primary" id="analyze-page-btn">📊 Analisar Página</button>
+      <button class="btn-secondary" id="show-panel-btn">📱 Mostrar Painel</button>
+      <button class="btn-secondary" id="open-logs-btn">📋 Ver Logs</button>
+      <button class="btn-danger" id="clear-logs-btn">🗑️ Limpar Logs</button>
+    </div>
+
+    <!-- Info Section -->
+    <div class="section">
+      <div class="section-title">Informações</div>
+      <div id="page-info" style="font-size: 10px; color: #aaa; line-height: 1.6;">
+        <strong>Página:</strong> -<br>
+        <strong>URL:</strong> -<br>
+        <strong>Hora:</strong> <span id="current-time">-</span>
+      </div>
+    </div>
+
+    <!-- Logs Section -->
+    <div class="section">
+      <div class="section-title">Últimos Logs</div>
+      <div class="logs-container" id="logs-container">
+        <div style="color: #666; text-align: center; padding: 20px 0;">Nenhum log</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Orion v1.0.0 | Made with 🟣
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

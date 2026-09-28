@@ -1,0 +1,3114 @@
+<!doctype html>
+<head><script>window.__atlasUserAvatar = "";window.__GO_CACHE_V = 1790016044;window.__ACM10_PWA_LIBERADO = true;window.__ACM10_MARCA_NOME = "Broker QX";window.__ACM10_MARCA = {"logo":"/branding/logo.png","rodape":"/branding/developer_logo.png?v=1790016044084","preloader":"/branding/preloader.png","preloader_gif":"/branding/preloader_gif.gif","compacta":"/branding/logo_compacta.png","atlas":true,"escura":false};</script>
+    <meta charset="utf-8">
+    <title>Broker QX</title>
+    <meta name="application-name" content=(window.__ACM10_MARCA_NOME||'ACM10')>
+    <meta name="apple-mobile-web-app-title" content=(window.__ACM10_MARCA_NOME||'ACM10')>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="/pwa/manifest.webmanifest?v=acm10" id="go-manifest-early">
+    <script>
+    (function(){
+      try {
+        if (sessionStorage.getItem('__go_force_login') === '1') {
+          sessionStorage.removeItem('__go_force_login');
+          location.replace('/pt/login');
+          return;
+        }
+      } catch (e) {}
+    })();
+    // Navegacao interna do engine (menu do avatar). Precisa ser o PRIMEIRO override de
+    // window.open da pagina: o bundle guarda a referencia cedo, entao um override feito
+    // depois (mais abaixo neste arquivo) nunca e chamado — era por isso que "Dados
+    // pessoais" nao levava a lugar nenhum e o engine quebrava.
+    (function(){
+      var MAPA = [
+        [/^\/profile\/?$/i, '/pt/profile/personal'],          // "Dados pessoais"
+        [/^\/(pt\/)?verification\/?$/i, '/pt/verification'],  // "Prosseguir para a Verificacao"
+        [/^\/(pt\/)?(withdraw|withdrawal)\/?$/i, '/pt/profile/personal']
+      ];
+      function destinoInterno(url){
+        if (typeof url !== 'string') return null;
+        var u = url.replace(/^https?:\/\/[^/]+/i, '');
+        for (var i = 0; i < MAPA.length; i++) if (MAPA[i][0].test(u)) return MAPA[i][1];
+        return null;
+      }
+      var _open = window.open;
+      window.open = function(url){
+        var destino = destinoInterno(url);
+        if (destino) { location.href = destino; return null; }   // mesma aba, como no site real
+        return _open.apply(window, arguments);
+      };
+      window.__acm10NavInterna = destinoInterno;
+    })();
+    // ===== Foto de perfil no cabecalho do traderoom: DESLIGADA =====
+    // Com `false`, o traderoom mostra o icone padrao do engine. Para reativar, basta trocar
+    // para `true`: volta a sobreposicao com a foto do usuario, encaixada no circulo (a
+    // posicao e detectada nos pixels do canvas, por isso o preserveDrawingBuffer abaixo).
+    window.__ACM10_FOTO_TRADEROOM = false;
+    (function(){
+      if (!window.__ACM10_FOTO_TRADEROOM) return;   // sem a foto, nao precisa preservar o buffer
+      var orig = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function(tipo, attrs){
+        if (/webgl/i.test(String(tipo))) attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
+        return orig.call(this, tipo, attrs);
+      };
+    })();
+    (function(){
+      var BR = (window.__ACM10_MARCA_NOME||'ACM10');
+      function badName(v){
+        return /global\s*option|atlas|exnova|iq\s*option|my\s*broker|quadcode/i.test(String(v || ''));
+      }
+      function lockAppName(){
+        var t = (document.title || '').trim();
+        if (!t || badName(t)) document.title = BR;
+        var m1 = document.querySelector('meta[name="application-name"]');
+        var m2 = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+        if (m1 && m1.content !== BR) m1.content = BR;
+        if (m2 && m2.content !== BR) m2.content = BR;
+      }
+      window.__goLockAppName = lockAppName;
+      lockAppName();
+      setInterval(lockAppName, 250);
+      document.addEventListener('visibilitychange', lockAppName);
+    })();
+    </script>
+    <meta http-equiv="Cache-Control" content="private, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <link rel="preconnect" href="/" crossorigin>
+    <!-- O engine baixa `glengine<hash>.wasm` e `.data` (ele mesmo pede assim; a Exnova nem
+         hospeda os .gz). Preparar aqui os arquivos `.gz` baixava uns 14 MB que NUNCA eram
+         usados, alem do download de verdade — peso morto em toda visita, e no iPhone, onde
+         a memoria por aba e curta, isso ajudava a travar a tela de carregamento. O
+         aquecimento certo, com o mesmo `?v=` que o engine usa, fica no script mais abaixo. -->
+    <link rel="preload" href="/traderoom/glengine4225b03f.js" as="script" crossorigin="use-credentials" fetchpriority="high">
+    <link rel="preload" href="/traderoom/bundle.js?v=1783491935" as="script" crossorigin="use-credentials" fetchpriority="high">
+    <link rel="preload" href="/traderoom/toLoad.js" as="script" crossorigin="use-credentials" fetchpriority="high">
+    <link rel="preload" href="/traderoom/bundle.css" as="style">
+    <style id="go-boot-splash-css">
+    #go-boot-splash{
+      position:fixed;inset:0;z-index:2147483646;background:#000;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      transition:opacity .45s ease;
+    }
+    #go-boot-splash.hide{opacity:0;pointer-events:none;}
+    #go-boot-splash.done{display:none!important;}
+    /* Esta e a tela de carregamento que aparece PRIMEIRO (fica por cima da do engine).
+       O cinza serve para neutralizar a arte de fabrica, que veio de outra marca; a
+       animacao enviada no painel e nossa e passa em cor plena — ver a classe abaixo. */
+    #go-boot-splash img{
+      max-width:min(280px,72vw);max-height:min(80px,18vh);width:auto;height:auto;
+      filter:grayscale(1) brightness(.88);object-fit:contain;
+    }
+    #go-boot-splash img.go-marca-propria{ filter:none; }
+    #go-boot-text{
+      color:#8a8a8a;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      margin:14px 0 10px;letter-spacing:.02em;
+    }
+    #go-boot-bar{width:min(280px,72vw);height:3px;background:#2a2a2a;overflow:hidden;}
+    #go-boot-fill{height:100%;width:10%;background:#707070;transition:width .3s ease;}
+    </style>
+    <script>
+    (function(){
+      // GIF configurado no painel (Configuracoes -> "Preloader animado (GIF)");
+      // o caminho fixo e so o reserva de quando a marca nao chegou.
+      var PRE=(window.__ACM10_MARCA&&window.__ACM10_MARCA.preloader_gif)||'/tenants/globaloption.pro/preloader_blue.gif';
+
+      // Idioma das mensagens do carregamento. A sala vive em /traderoom (sem prefixo),
+      // entao o idioma vem do cookie `lang` — o MESMO que o /login grava quando o
+      // usuario escolhe a bandeira — e, na falta dele, do idioma do navegador.
+      var BOOT_TXT={
+        en:{'Conectando...':'Connecting...','Inicializando...':'Initializing...','Abrindo...':'Opening...','Carregando...':'Loading...'},
+        es:{'Conectando...':'Conectando...','Inicializando...':'Inicializando...','Abrindo...':'Abriendo...','Carregando...':'Cargando...'}
+      };
+      function bootLang(){
+        function ck(n){
+          var m=document.cookie.match(new RegExp('(?:^|;\\s*)'+n+'=([^;\\s]+)'));
+          return m?decodeURIComponent(m[1]).slice(0,2).toLowerCase():'';
+        }
+        // `acm10_idioma` = escolha explicita na bandeira do /login; `lang` = o locale
+        // que a plataforma grava (pt_PT/en_US/es_ES); por ultimo, o idioma do aparelho.
+        var l=ck('acm10_idioma')||ck('lang')||ck('pll_language')||
+              String((navigator.languages&&navigator.languages[0])||navigator.language||'pt').slice(0,2).toLowerCase();
+        return (l==='en'||l==='es')?l:'pt';
+      }
+      var LANG=bootLang();
+      // Traduz a mensagem do carregamento; texto desconhecido passa como veio.
+      window.__goBootT=function(t){
+        var d=BOOT_TXT[LANG];
+        return (d&&d[t])||t;
+      };
+      function mountSplash(){
+        if (document.getElementById('go-boot-splash')) return;
+        var el=document.createElement('div');
+        el.id='go-boot-splash';
+        // Arte enviada no painel (/branding/...) fica em cor plena; a de fabrica segue
+        // neutralizada em cinza, para nao destoar da tela preta.
+        var propria = /^\/branding\//.test(PRE) ? ' class="go-marca-propria"' : '';
+        el.innerHTML='<img src="'+PRE+'"'+propria+' alt=""><div id="go-boot-text">'+window.__goBootT('Conectando...')+'</div><div id="go-boot-bar"><div id="go-boot-fill"></div></div>';
+        (document.body||document.documentElement).appendChild(el);
+      }
+      // Ponto UNICO por onde toda mensagem do carregamento passa — por isso a traducao
+      // mora aqui, e nao espalhada nas ~10 chamadas do arquivo.
+      window.__goBootSplashPct=function(p,t){
+        var f=document.getElementById('go-boot-fill');
+        var tx=document.getElementById('go-boot-text');
+        if(f) f.style.width=Math.max(10,Math.min(98,p))+'%';
+        if(t&&tx) tx.textContent=window.__goBootT(t);
+      };
+      window.__goBootSplashHide=function(){
+        var s=document.getElementById('go-boot-splash');
+        if(!s||s.classList.contains('done')) return;
+        s.classList.add('hide');
+        setTimeout(function(){ s.classList.add('done'); }, 480);
+      };
+      if(document.body) mountSplash();
+      else document.addEventListener('DOMContentLoaded', mountSplash);
+      window.__goBootSplashPct(12,'Conectando...');
+    })();
+    </script>
+    <script>
+    /* Memória de retorno perfil → traderoom (cache HTTP + boot rápido) */
+    (function(){
+      var V = String(window.__GO_CACHE_V || '1783491935');
+      window.__GO_CACHE_V = V;
+      function readWarmMem(){
+        try {
+          var ts = parseInt(sessionStorage.getItem('__go_traderoom_warm_ts') || '0', 10);
+          var ver = sessionStorage.getItem('__go_traderoom_warm_v') || '';
+          var recent = ts > 0 && ver === V && (Date.now() - ts) < 1800000;
+          var flagged = location.search.indexOf('warm=1') >= 0
+            || sessionStorage.getItem('__go_traderoom_return') === '1';
+          if (sessionStorage.getItem('__go_traderoom_return') === '1') {
+            sessionStorage.removeItem('__go_traderoom_return');
+          }
+          return recent || flagged;
+        } catch (e) {
+          return location.search.indexOf('warm=1') >= 0;
+        }
+      }
+      window.__goWarmReturn = readWarmMem();
+      window.__goMarkTraderoomWarm = function(){
+        try {
+          sessionStorage.setItem('__go_traderoom_warm_ts', String(Date.now()));
+          sessionStorage.setItem('__go_traderoom_warm_v', V);
+        } catch (e) {}
+      };
+      window.addEventListener('pagehide', function(){
+        if (window.__atlasWasmReady || window.__atlasPatchCount >= 1) {
+          window.__goMarkTraderoomWarm();
+        }
+      });
+      window.addEventListener('pageshow', function(e){
+        if (e.persisted) {
+          window.__goWarmReturn = true;
+          window.__goBfcacheRestore = true;
+          try {
+            var boot = document.getElementById('acm10-boot');
+            if (boot && boot.parentNode) boot.parentNode.removeChild(boot);
+          } catch (ex) {}
+        }
+      });
+    })();
+    </script>
+    <script>
+    /* AUTH GATE — antes de baixar WASM */
+    (function(){
+      var p = location.pathname;
+      if (!/^\/(pt|en|es)\/traderoom(\/|$)/i.test(p) && !/^\/pwa\/traderoom(\/|$)/i.test(p)) return;
+      function ssid(){
+        var m = document.cookie.match(/(?:^|;\s*)ssid=([^;\s]+)/);
+        if (m) return decodeURIComponent(m[1]);
+        try { return sessionStorage.getItem('__go_ssid') || ''; } catch (e) { return ''; }
+      }
+      var qs = new URLSearchParams(location.search);
+      if (!(qs.get('go_ssid') || ssid())) {
+        window.__goAuthBlocked = true;
+        location.replace('/pt/login?redirect_url=' + encodeURIComponent(p + location.search + location.hash));
+      }
+    })();
+    </script>
+    <script>
+    /* Download paralelo — WASM primeiro (mobile prioriza engine) */
+    (function(){
+      if (window.__goAuthBlocked) return;
+      var V=window.__GO_CACHE_V||'1783491935';
+      var ua=navigator.userAgent||'';
+      var mob=/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      // Os MESMOS enderecos que o engine vai pedir (inclusive o `?v=`), senao o navegador
+      // trata como outro recurso e baixa duas vezes.
+      var warm=mob
+        ?['/traderoom/glengine4225b03f.wasm?v='+V,'/traderoom/glengine4225b03f.data?v='+V,
+          '/traderoom/glengine4225b03f.js','/traderoom/toLoad.js','/traderoom/bundle.js?v='+V]
+        :['/traderoom/glengine4225b03f.wasm?v='+V,'/traderoom/glengine4225b03f.data?v='+V,
+          '/traderoom/glengine4225b03f.js','/traderoom/bundle.js?v='+V,'/traderoom/bundle.css',
+          '/traderoom/toLoad.js'];
+      for(var i=0;i<warm.length;i++){
+        try{ fetch(warm[i],{credentials:'include',cache:'force-cache'}).catch(function(){}); }catch(e){}
+      }
+    })();
+    </script>
+    <script>
+    // ===== MOBILE ONLY: layout nativo Exnova PWA (sem zoom-out do desktop) =====
+    (function(){
+      var ua = navigator.userAgent || '';
+      var narrow = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+      var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      var mobile = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+        || (touch && narrow);
+      window.__GO_IS_MOBILE = mobile;
+      var pwaPath = /^\/pwa\/traderoom(\/|$)/i.test(location.pathname);
+      window.__GO_PWA = pwaPath;
+      if (pwaPath) mobile = true;
+      window.__GO_IS_MOBILE = mobile;
+      // Mobile browser → PWA React Exnova (design parity)
+      // So manda para o aplicativo quando o servidor liberou (window.__ACM10_PWA_LIBERADO).
+      // Enquanto o /pwa nao estiver validado, o celular continua no traderoom WASM daqui.
+      if (window.__ACM10_PWA_LIBERADO && mobile && !pwaPath && !/^\/pwa\//i.test(location.pathname)) {
+        var qs = location.search || '';
+        if (qs.indexOf('go_ssid=') >= 0 || document.cookie.indexOf('ssid=') >= 0) {
+          location.replace('/pwa/traderoom' + qs + location.hash);
+          return;
+        }
+      }
+      // Mobile usa WASM shell em /pt/traderoom quando não há sessão PWA
+      if (!mobile && !pwaPath) return;
+      document.documentElement.classList.add('go-mobile');
+      if (pwaPath) document.documentElement.classList.add('go-pwa');
+      try {
+        document.cookie = 'go_mobile=1; path=/; max-age=86400; SameSite=Lax';
+        document.cookie = 'platform=142; path=/; max-age=' + (365 * 86400) + '; SameSite=Lax';
+      } catch(e){}
+      var MOBILE_VP = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, minimal-ui, viewport-fit=cover';
+      function applyMobileViewport(){
+        var landscape = (window.innerWidth || 0) > (window.innerHeight || 0);
+        document.documentElement.classList.toggle('landscape', landscape);
+        window.__GO_MOBILE_SCALE = 1;
+        var m = document.querySelector('meta[name="viewport"]');
+        if (!m) {
+          m = document.createElement('meta');
+          m.name = 'viewport';
+          document.head.appendChild(m);
+        }
+        if (m.getAttribute('content') !== MOBILE_VP) m.setAttribute('content', MOBILE_VP);
+      }
+      applyMobileViewport();
+      window.addEventListener('orientationchange', function(){ setTimeout(applyMobileViewport, 120); });
+      window.addEventListener('resize', applyMobileViewport);
+    })();
+    </script>
+    <script>
+    // Atlas Broker: skip version API call (avoids CORS error on api.darkbot.com.br)
+    if(!document.cookie.includes('release='))document.cookie='release=local;path=/;max-age=31536000';
+    // Idioma dos cookies que o engine le. Isto FORCAVA pt_PT em toda abertura, entao
+    // quem entrava em espanhol ou ingles caia em portugues assim que o traderoom subia.
+    // Agora vale, nesta ordem: a escolha explicita da pessoa, o que ja estava gravado e,
+    // por fim, o idioma do aparelho.
+    (function(){
+      function ck(n){var m=document.cookie.match(new RegExp('(?:^|;\\s*)'+n+'=([^;\\s]+)'));return m?decodeURIComponent(m[1]):'';}
+      function vale(v){v=String(v||'').slice(0,2).toLowerCase();return (v==='pt'||v==='en'||v==='es')?v:'';}
+      var cod = vale(ck('acm10_idioma')) || vale(ck('lang')) || vale(ck('pll_language'))
+             || vale((navigator.languages&&navigator.languages[0])||navigator.language) || 'pt';
+      var LOC={pt:'pt_PT',en:'en_US',es:'es_ES'};
+      document.cookie='lang='+LOC[cod]+';path=/;max-age=31536000';
+      document.cookie='pll_language='+cod+';path=/;max-age=31536000';
+      document.cookie='device_locale='+cod+';path=/;max-age=31536000';
+      window.__goIdioma = cod;
+      // O engine foi compilado em portugues: ao subir, ele SALVA as proprias
+      // configuracoes mandando `lang=pt_PT` para o servidor — e isso jogava de volta
+      // para portugues quem entrou em espanhol ou ingles. Enquanto ele esta subindo,
+      // trocamos esse campo pelo idioma real da pessoa. Passada a janela de arranque,
+      // um envio desses e a pessoa mexendo no menu de idioma: ai passa direto, e a
+      // escolha fica gravada na conta.
+      var ARRANQUE = 30000, nasceu = Date.now();
+      function ehArranque(){ return Date.now() - nasceu < ARRANQUE; }
+      function corrigir(corpo){
+        try {
+          if (corpo instanceof FormData) {
+            if (!corpo.has('lang')) return corpo;
+            corpo.set('lang', LOC[window.__goIdioma]);
+            return corpo;
+          }
+          if (typeof corpo === 'string' && /(^|&|")lang(=|")/.test(corpo)) {
+            if (corpo.charAt(0) === '{') {
+              var o = JSON.parse(corpo); if (!('lang' in o)) return corpo;
+              o.lang = LOC[window.__goIdioma]; return JSON.stringify(o);
+            }
+            return corpo.replace(/(^|&)lang=[^&]*/, '$1lang=' + LOC[window.__goIdioma]);
+          }
+        } catch(e) {}
+        return corpo;
+      }
+      function ehSettings(u){ return /profile\/settings/.test(String(u || '')); }
+      var fetchOriginal = window.fetch;
+      if (fetchOriginal) {
+        window.fetch = function(entrada, opcoes){
+          try {
+            var url = (typeof entrada === 'string') ? entrada : (entrada && entrada.url);
+            if (ehSettings(url) && opcoes && opcoes.body && ehArranque()) opcoes.body = corrigir(opcoes.body);
+          } catch(e) {}
+          return fetchOriginal.apply(this, arguments);
+        };
+      }
+      var abrirXhr = XMLHttpRequest.prototype.open, enviarXhr = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(m, u){ this.__goUrl = u; return abrirXhr.apply(this, arguments); };
+      XMLHttpRequest.prototype.send = function(corpo){
+        try { if (ehSettings(this.__goUrl) && corpo && ehArranque()) arguments[0] = corrigir(corpo); } catch(e) {}
+        return enviarXhr.apply(this, arguments);
+      };
+      // Depois do arranque, uma troca de idioma vira escolha da pessoa.
+      setInterval(function(){
+        var agora = vale(ck('lang')) || vale(ck('pll_language'));
+        if (!agora || agora === window.__goIdioma) return;
+        window.__goIdioma = agora;
+        if (ehArranque()) return;
+        try { document.cookie='acm10_idioma='+agora+';path=/;max-age=31536000'; } catch(e) {}
+      }, 1500);
+    })();
+    // GDPR auto-accept (chunk missing)
+    try{localStorage.setItem('cookie_usage_accepted','1')}catch(e){}
+    try{localStorage.setItem('features/show-saas-logo','1')}catch(e){}
+    try{localStorage.setItem('features/exnova-deposit-bonus-modal-flow','enabled')}catch(e){}
+    // script-indicators: feature vem do /api/v2/features (handler)
+    // WASM fetch interno (emscripten) usa api.* — reescreve para o host atual (api.globaloption.pro não tem DNS)
+    (function(){
+      function rewriteApiHost(url){
+        if (typeof url !== 'string') return url;
+        return url.replace(/^https?:\/\/api\.[^/]+/i, location.origin);
+      }
+      var _fetchApi = window.fetch;
+      if (_fetchApi) {
+        window.fetch = function(input, init){
+          if (typeof input === 'string') {
+            input = rewriteApiHost(input);
+          } else if (input && input.url) {
+            var u = rewriteApiHost(input.url);
+            if (u !== input.url) input = new Request(u, input);
+          }
+          return _fetchApi.call(this, input, init);
+        };
+      }
+      var _openApi = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url){
+        if (typeof url === 'string') url = rewriteApiHost(url);
+        return _openApi.call(this, method, url);
+      };
+    })();
+    // Depósito: força lista com apenas PIX + USDT em qualquer endpoint de métodos
+    (function(){
+      var ALLOW = {3010:1, 3190:1};
+      var STUB = {
+        isSuccessful: true, message: [],
+        methods: [
+          {id:3010,payment_method_id:3010,name:'PIX (Apenas seu CPF)',payment_method_name:'PIX',
+           icon:'/images/hodly/payment-icons/pix_brasil-round.svg',image:'/images/hodly/payment-icons/pix_brasil-round.svg',
+           is_enabled:true,is_available:true,type:'deposit',commission_percent:0,
+           currencies:[{name:'BRL',minimum:10,maximum:50000}],currencies_limits:[{name:'BRL',minimum:10,maximum:50000}]},
+          {id:3190,payment_method_id:3190,name:'Tether (USDT) TRC20',payment_method_name:'USDT',
+           icon:'/images/hodly/payment-icons/usdt.svg',image:'/images/hodly/payment-icons/usdt.svg',
+           is_enabled:true,is_available:true,type:'deposit',is_crypto:true,commission_percent:0,
+           currencies:[{name:'BRL',minimum:10,maximum:50000}],currencies_limits:[{name:'BRL',minimum:10,maximum:50000}]}
+        ]
+      };
+      function filterPayload(data){
+        if (!data || typeof data !== 'object') return STUB;
+        if (Array.isArray(data.methods)) {
+          data.methods = data.methods.filter(function(m){
+            var id = m && (m.id || m.payment_method_id);
+            if (ALLOW[id]) return true;
+            var n = String((m && (m.name || m.payment_method_name)) || '').toLowerCase();
+            return n.indexOf('pix') >= 0 || n.indexOf('usdt') >= 0 || n.indexOf('tether') >= 0;
+          });
+          if (!data.methods.length) data.methods = STUB.methods.slice();
+        }
+        return data;
+      }
+      function isDepMethodsUrl(url){
+        return typeof url === 'string' && /\/deposit-methods|\/payment-methods/i.test(url);
+      }
+      var _fetchDep = window.fetch;
+      if (_fetchDep) {
+        window.fetch = function(input, init){
+          var url = typeof input === 'string' ? input : (input && input.url) || '';
+          if (!isDepMethodsUrl(url)) return _fetchDep.apply(this, arguments);
+          return _fetchDep.apply(this, arguments).then(function(res){
+            if (!res || !res.ok) {
+              return new Response(JSON.stringify(STUB), {status:200, headers:{'Content-Type':'application/json'}});
+            }
+            return res.clone().json().then(function(data){
+              return new Response(JSON.stringify(filterPayload(data)), {
+                status: res.status, headers: {'Content-Type':'application/json'}
+              });
+            }).catch(function(){
+              return new Response(JSON.stringify(STUB), {status:200, headers:{'Content-Type':'application/json'}});
+            });
+          }).catch(function(){
+            return new Response(JSON.stringify(STUB), {status:200, headers:{'Content-Type':'application/json'}});
+          });
+        };
+      }
+    })();
+    // Host canônico — cookie ssid não vale entre www e apex sem Domain=
+    (function(){
+      var h = location.hostname;
+      if (h.indexOf('www.') === 0) {
+        location.replace(location.href.replace('//www.', '//'));
+        return;
+      }
+      if (/^globaloption\.globaloption\./i.test(h)) {
+        location.replace(location.href.replace(h, 'globaloption.pro'));
+        return;
+      }
+    })();
+    // ===== AUTH GATE: traderoom exige login — sem ssid/sessão vai direto pro login =====
+    (function(){
+      var p = location.pathname;
+      if (!/^\/(pt|en|es)\/traderoom(\/|$)/i.test(p) && !/^\/pwa\/traderoom(\/|$)/i.test(p)) return;
+      window.__goAuthBlocked = false;
+      function readSsidEarly(){
+        var m = document.cookie.match(/(?:^|;\s*)ssid=([^;\s]+)/);
+        if (m) return decodeURIComponent(m[1]);
+        try { return sessionStorage.getItem('__go_ssid') || ''; } catch (e) { return ''; }
+      }
+      function redirectLogin(){
+        if (window.__atlasWasmReady || window.__atlasPatchCount >= 1 || window.__goAuthOk) return;
+        window.__goAuthBlocked = true;
+        var ret = encodeURIComponent(p + location.search + location.hash);
+        location.replace('/pt/login?redirect_url=' + ret);
+      }
+      var qs = new URLSearchParams(location.search);
+      var ssid = qs.get('go_ssid') || readSsidEarly();
+      if (!ssid) { redirectLogin(); return; }
+      window.ssid = ssid;
+      window.__goAuthCheckPromise = fetch('/v4/sessions/current', { credentials: 'include' })
+        .then(function(r){
+          if (!r.ok) { redirectLogin(); return null; }
+          return r.json();
+        })
+        .then(function(j){
+          if (!j || (!j.user_id && !j.ssid && !j.id)) { redirectLogin(); return null; }
+          window.__goAuthOk = true;
+          if (j.ssid || j.id) {
+            window.ssid = j.ssid || j.id;
+            try { sessionStorage.setItem('__go_ssid', window.ssid); } catch (e) {}
+          }
+          return j;
+        })
+        .catch(function(){ redirectLogin(); return null; });
+    })();
+    // URL da sala: /traderoom (sem prefixo de idioma). O engine e o mesmo em qualquer
+    // idioma e /en/traderoom, /es/traderoom nunca existiram — manter o /pt so confundia.
+    // Sem sessao, vai para o login; com sessao, fica em /traderoom.
+    (function(){
+      var p = location.pathname;
+      if (p === '/traderoom' || p === '/traderoom/' || p === '/pt/traderoom' || p === '/pt/traderoom/') {
+        var m = document.cookie.match(/(?:^|;\s*)ssid=([^;\s]+)/);
+        var has = m ? decodeURIComponent(m[1]) : '';
+        if (!has) { try { has = sessionStorage.getItem('__go_ssid') || ''; } catch (e) {} }
+        if (!has || window.__goUserLogout) { location.replace('/pt/login'); return; }
+        // Veio pelo caminho antigo (/pt/traderoom): encurta a URL SEM recarregar.
+        if (p.indexOf('/pt/') === 0 && !window.__GO_IS_MOBILE) {
+          try { history.replaceState(null, '', '/traderoom' + location.search + location.hash); } catch (e) {}
+        }
+      }
+    })();
+    // Normaliza /login → /pt/login (bundle usa /login sem prefixo)
+    (function(){
+      var p = location.pathname;
+      if (p === '/login' || p === '/en/login' || p === '/es/login') {
+        location.replace('/pt/login' + location.search + location.hash);
+        return;
+      }
+    })();
+    // Corrige redirects do bundle: host inválido e /login → /pt/login
+    (function(){
+      function _readSsidCookie(){
+        if (window.ssid) return window.ssid;
+        var m = document.cookie.match(/(?:^|;\s*)ssid=([^;\s]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function _bootSsidFromUrl(){
+        try {
+          var boot = new URLSearchParams(location.search).get('go_ssid');
+          if (!boot) {
+            try { boot = sessionStorage.getItem('__go_ssid') || ''; } catch (e) {}
+          }
+          if (!boot) return;
+          window.ssid = boot;
+          var h = location.hostname;
+          if (h.indexOf('www.') === 0) h = h.slice(4);
+          var dom = (h && h.indexOf('.') >= 0 && h !== 'localhost') ? '; domain=' + h : '';
+          var sec = location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = 'ssid=' + boot + '; path=/; max-age=' + (7 * 24 * 3600) + '; SameSite=Lax' + sec + dom;
+          try { sessionStorage.removeItem('__go_wasm_phase'); sessionStorage.removeItem('__go_reload_n'); } catch (e) {}
+        } catch (e) {}
+      }
+      _bootSsidFromUrl();
+      // Limpa parâmetros de cache da URL (evita ?nocache=123&v=456 na barra)
+      try {
+        var _qs = new URLSearchParams(location.search);
+        if (_qs.has('nocache') || _qs.has('v') || _qs.has('go_ssid') || _qs.has('warm')) {
+          var _boot = _qs.get('go_ssid');
+          _qs.delete('nocache');
+          _qs.delete('v');
+          // `warm=1` era o aviso "voce esta voltando do perfil, o cache esta quente". O
+          // perfil nao o manda mais (o recado vai por sessionStorage, em
+          // `__go_traderoom_return`), mas link antigo ou favorito ainda pode trazer —
+          // ja foi lido la em cima, aqui so sai da barra de endereco.
+          _qs.delete('warm');
+          if (_boot) _qs.delete('go_ssid');
+          var _clean = location.pathname + (_qs.toString() ? '?' + _qs.toString() : '');
+          history.replaceState(null, '', _clean + location.hash);
+        }
+      } catch (e) {}
+      // WASM boot: logout fake só durante boot — logout real do usuário passa
+      (function(){
+        var LOGOUT_RX = /\/(api\/v[0-9.]+|v[0-9.]+)\/logout(\?|$)/i;
+        var _bootStart = Date.now();
+        try {
+          window.addEventListener('pointerdown', function(){ window.__goUserInteracted = true; }, {capture:true, passive:true});
+          window.addEventListener('keydown', function(){ window.__goUserInteracted = true; }, {capture:true, passive:true});
+        } catch(e){}
+        function shouldFakeLogout(){
+          if (window.__goAllowRealLogout || window.__goUserLogout) return false;
+          if (window.__goUserInteracted && (Date.now() - _bootStart > 3000)) return false;
+          if (window.__atlasWasmReady && (Date.now() - (window.__atlasWasmReadyTime || 0)) > 2500) return false;
+          if (Date.now() - _bootStart > 20000) return false;
+          return true;
+        }
+        function _reloadCount(){
+          try { return parseInt(sessionStorage.getItem('__go_reload_n') || '0', 10) || 0; } catch (e) { return 0; }
+        }
+        function _bumpReloadCount(){
+          try { sessionStorage.setItem('__go_reload_n', String(_reloadCount() + 1)); } catch (e) {}
+        }
+        var _fetch0 = window.fetch;
+        if (_fetch0) {
+          window.fetch = function(input, init){
+            var url = typeof input === 'string' ? input : (input && input.url) || '';
+            if (LOGOUT_RX.test(url)) {
+              if (!shouldFakeLogout()) {
+                var hdrs = (init && init.headers) ? new Headers(init.headers) : new Headers();
+                hdrs.set('X-Go-User-Logout', '1');
+                init = Object.assign({}, init || {}, { headers: hdrs, credentials: 'include' });
+                return _fetch0.call(this, input, init).then(function(res){
+                  try { if (window.__atlasClearSsid) window.__atlasClearSsid(); sessionStorage.clear(); sessionStorage.setItem('__go_force_login','1'); } catch(e){}
+                  window.__goUserLogout = true;
+                  window.__goAuthBlocked = true;
+                  var boot = document.getElementById('acm10-boot');
+                  if (boot && boot.parentNode) boot.parentNode.removeChild(boot);
+                  try { window.top.location.replace('/pt/login'); } catch (e) {
+                    if (window.__goNativeReplace) window.__goNativeReplace('/pt/login');
+                    else location.href = '/pt/login';
+                  }
+                  return res;
+                }).catch(function(err){
+                  window.__goUserLogout = true;
+                  window.__goAuthBlocked = true;
+                  try { if (window.__atlasClearSsid) window.__atlasClearSsid(); sessionStorage.setItem('__go_force_login','1'); } catch(e){}
+                  try { window.top.location.replace('/pt/login'); } catch (e) {
+                    if (window.__goNativeReplace) window.__goNativeReplace('/pt/login');
+                    else location.href = '/pt/login';
+                  }
+                  throw err;
+                });
+              }
+              return Promise.resolve(new Response('{"isSuccessful":true,"code":"success","message":[]}', {status:200, headers:{'Content-Type':'application/json'}}));
+            }
+            return _fetch0.apply(this, arguments);
+          };
+        }
+        var _xo0 = XMLHttpRequest.prototype.open;
+        var _xs0 = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.open = function(method, url){
+          this.__goNoLogout = typeof url === 'string' && LOGOUT_RX.test(url);
+          return _xo0.apply(this, arguments);
+        };
+        XMLHttpRequest.prototype.send = function(body){
+          if (this.__goNoLogout) {
+            if (!shouldFakeLogout()) {
+              // LOGOUT DE VERDADE. O engine pede o logout por XHR (nao por fetch), entao
+              // e AQUI que a saida acontece: sem este bloco o pedido ia embora, a sala
+              // recarregava e o usuario continuava logado.
+              this.__goNoLogout = false;
+              try { this.setRequestHeader('X-Go-User-Logout', '1'); } catch (e) {}
+              window.__goUserLogout = true;
+              window.__goAuthBlocked = true;
+              try {
+                if (window.__atlasClearSsid) window.__atlasClearSsid();
+                sessionStorage.clear();
+                sessionStorage.setItem('__go_force_login', '1');
+              } catch (e) {}
+              var _irParaLogin = function(){
+                var boot = document.getElementById('acm10-boot');
+                if (boot && boot.parentNode) boot.parentNode.removeChild(boot);
+                try { window.top.location.replace('/pt/login'); } catch (e) {
+                  if (window.__goNativeReplace) window.__goNativeReplace('/pt/login');
+                  else location.href = '/pt/login';
+                }
+              };
+              // Espera a resposta (o servidor limpa o cookie ssid) e sai; se o pedido
+              // falhar ou demorar, sai do mesmo jeito — ninguem fica preso na sala.
+              try { this.addEventListener('loadend', _irParaLogin); } catch (e) {}
+              setTimeout(_irParaLogin, 1500);
+              return _xs0.apply(this, arguments);
+            }
+            var self = this;
+            setTimeout(function(){
+              try {
+                Object.defineProperty(self, 'readyState', {value:4, configurable:true});
+                Object.defineProperty(self, 'status', {value:200, configurable:true});
+                Object.defineProperty(self, 'responseText', {value:'{"isSuccessful":true,"code":"success"}', configurable:true});
+                if (typeof self.onreadystatechange === 'function') self.onreadystatechange();
+                if (typeof self.onload === 'function') self.onload();
+              } catch(e){}
+            }, 0);
+            return;
+          }
+          return _xs0.apply(this, arguments);
+        };
+        var _sb0 = navigator.sendBeacon;
+        if (_sb0) {
+          navigator.sendBeacon = function(url, data){
+            if (typeof url === 'string' && LOGOUT_RX.test(url)) return true;
+            return _sb0.apply(this, arguments);
+          };
+        }
+        try {
+          var _origReload = Location.prototype.reload;
+          Location.prototype.reload = function(){
+            if (window.__goUserLogout || window.__goAllowRealLogout) {
+              try { window.top.location.replace('/pt/login'); } catch (e) {
+                if (window.__goNativeReplace) window.__goNativeReplace('/pt/login');
+                else location.href = '/pt/login';
+              }
+              return;
+            }
+            if (_reloadCount() >= 1) {
+              console.log('[GO] reload cap — boot continua');
+              return;
+            }
+            console.log('[GO] wasm boot reload (once)');
+            _bumpReloadCount();
+            return _origReload.call(this);
+          };
+        } catch (e) {}
+      })();
+      // Limpa SW antigo; fake controller evita deadlock token_store no PWA
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs){
+            regs.forEach(function(r){ r.unregister(); });
+          });
+          var _fakeSwCtrl = { postMessage: function(){} };
+          try {
+            Object.defineProperty(navigator.serviceWorker, 'controller', {
+              get: function(){ return _fakeSwCtrl; },
+              configurable: true
+            });
+          } catch (swErr) {}
+        }
+        function _goCookieDom(){
+          var h = location.hostname;
+          if (h.indexOf('www.') === 0) h = h.slice(4);
+          return (h && h.indexOf('.') >= 0 && h !== 'localhost') ? '; domain=' + h : '';
+        }
+        function _goReadSsid(){
+          if (window.ssid) return window.ssid;
+          var m = document.cookie.match(/(?:^|;\s*)ssid=([^;\s]+)/);
+          if (m) return decodeURIComponent(m[1]);
+          try { return sessionStorage.getItem('__go_ssid') || ''; } catch (e) { return ''; }
+        }
+        var _ssidEarly = _goReadSsid();
+        if (_ssidEarly) {
+          window.ssid = _ssidEarly;
+          var _sec = location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = 'ssid=' + _ssidEarly + '; path=/; max-age=' + (7 * 24 * 3600) + '; SameSite=Lax' + _sec + _goCookieDom();
+          try { sessionStorage.setItem('__go_ssid', _ssidEarly); } catch (e) {}
+        }
+        var _fetchTok = window.fetch;
+        if (_fetchTok) {
+          window.fetch = function(input, init){
+            var url = typeof input === 'string' ? input : (input && input.url) || '';
+            if (url.indexOf('/traderoom/token_store') !== -1) {
+              var sid = _goReadSsid();
+              var plat = (window.__GO_IS_MOBILE || window.__GO_PWA) ? '142' : '126';
+              if (sid) {
+                return Promise.resolve(new Response('ssid=' + sid + '; platform=' + plat, {
+                  status: 200, headers: {'Content-Type': 'text/plain'}
+                }));
+              }
+            }
+            return _fetchTok.apply(this, arguments);
+          };
+        }
+      } catch (e) {}
+      function _isLoginNav(u){
+        if (typeof u !== 'string') return false;
+        return u === '/login' || u.indexOf('/login?') === 0 || u.indexOf('/login#') === 0
+          || u.indexOf('/pt/login') === 0 || u.indexOf('/en/login') === 0 || u.indexOf('/es/login') === 0;
+      }
+      function _isTraderoomNav(u){
+        if (typeof u !== 'string') return false;
+        try {
+          var p = u.charAt(0) === '/' ? u.split('?')[0].split('#')[0] : (new URL(u, location.origin)).pathname;
+          return p === '/traderoom' || p === '/traderoom/' || /^\/(pt|en|es)\/traderoom\/?$/i.test(p)
+            || /^\/pwa\/traderoom\/?$/i.test(p);
+        } catch (e) {
+          return /\/traderoom\/?(\?|#|$)/i.test(u);
+        }
+      }
+      function _mobileTraderoom(u){
+        if (!window.__GO_IS_MOBILE && !window.__GO_PWA) return u;
+        try {
+          var p = u.charAt(0) === '/' ? u.split('?')[0].split('#')[0] : (new URL(u, location.origin)).pathname;
+          if (/^\/(pt|en|es)\/traderoom\/?$/i.test(p) || p === '/traderoom' || p === '/traderoom/') {
+            var iQ = u.indexOf('?');
+            var iH = u.indexOf('#');
+            var qs = iQ >= 0 ? (iH >= 0 ? u.slice(iQ, iH) : u.slice(iQ)) : '';
+            var hash = iH >= 0 ? u.slice(iH) : '';
+            return '/pwa/traderoom' + qs + hash;
+          }
+        } catch (e) {}
+        return u;
+      }
+      function fixNavUrl(u){
+        if (typeof u !== 'string') return u;
+        if (u === '/pwa' || u === '/pwa/') {
+          if (/^\/pwa\/traderoom/i.test(location.pathname)) return null;
+          return '/pwa/traderoom';
+        }
+        if (/globaloption\.globaloption\./i.test(u)) u = u.replace(/globaloption\.globaloption\.pro/gi, 'globaloption.pro');
+        // Impede troca de host pelo bundle (appinit subdomain) — causava reload em loop
+        try {
+          if (/^https?:\/\//i.test(u)) {
+            var nu = new URL(u);
+            var cu = new URL(location.href);
+            if (nu.hostname !== cu.hostname && nu.pathname === cu.pathname && nu.search === cu.search) {
+              return null;
+            }
+          }
+        } catch (e) {}
+        if (u.charAt(0) === '/' && (u === '/login' || u.indexOf('/login?') === 0 || u.indexOf('/login#') === 0)) {
+          u = '/pt/login' + u.slice(6);
+        }
+        if (window.__goUserLogout && _isLoginNav(u)) {
+          clearSsidCookie();
+          return u.indexOf('/pt/login') === 0 ? u : '/pt/login';
+        }
+        if (window.__goUserLogout && _isTraderoomNav(u)) return '/pt/login';
+        if (_isTraderoomNav(u) && !_readSsidCookie() && !window.ssid) return '/pt/login';
+        // A sala mora em /traderoom (o /pt/... antigo continua valendo para quem chegar
+        // por um link velho, mas nao e mais para onde mandamos ninguem).
+        if (u === '/traderoom' || u === '/traderoom/' || u === '/pt/traderoom' || u === '/pt/traderoom/') {
+          u = (_readSsidCookie() || window.ssid) ? (window.__GO_IS_MOBILE ? '/pwa/traderoom' : '/traderoom') : '/pt/login';
+        }
+        u = _mobileTraderoom(u);
+        // Bloqueia bounce login↔traderoom (exceto logout explícito)
+        if (_readSsidCookie() && _isLoginNav(u) && !window.__goUserLogout && !window.__goAllowRealLogout) return null;
+        return u;
+      }
+      function clearSsidCookie(){
+        var dom = '';
+        var h = location.hostname;
+        if (h.indexOf('www.') === 0) h = h.slice(4);
+        if (h && h.indexOf('.') >= 0) dom = '; domain=' + h;
+        document.cookie = 'ssid=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT' + dom;
+        document.cookie = 'ssid=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
+      window.__atlasClearSsid = clearSsidCookie;
+      var loc = window.location;
+      if (/^globaloption\.globaloption\./i.test(loc.hostname)) {
+        loc.replace(loc.href.replace(loc.hostname, 'globaloption.pro'));
+        return;
+      }
+      var _replace = loc.replace.bind(loc);
+      window.__goNativeReplace = _replace;
+      loc.replace = function(u){ var f = fixNavUrl(u); if (f === null) return; return _replace(f); };
+      var _assign = loc.assign.bind(loc);
+      loc.assign = function(u){ var f = fixNavUrl(u); if (f === null) return; return _assign(f); };
+      try {
+        var _hrefDesc = Object.getOwnPropertyDescriptor(Location.prototype, 'href');
+        if (_hrefDesc && _hrefDesc.set) {
+          Object.defineProperty(Location.prototype, 'href', {
+            configurable: true,
+            get: _hrefDesc.get,
+            set: function(u){ var f = fixNavUrl(u); if (f === null) return; return _hrefDesc.set.call(this, f); }
+          });
+        }
+      } catch(e){}
+      document.addEventListener('click', function(e){
+        var el = e.target;
+        for (var i = 0; i < 8 && el; i++, el = el.parentElement) {
+          if (el.tagName === 'A' && el.href && /\/(pt|en|es)\/profile/i.test(el.href)) {
+            if (window.__goMarkTraderoomWarm) window.__goMarkTraderoomWarm();
+            try { sessionStorage.setItem('__go_traderoom_from_profile', '0'); } catch (ex) {}
+          }
+        }
+      }, true);
+    })();
+    </script>
+    <style>
+    :root{--go-loader-bg:#000000;--go-loader-track:#2a2a2a;--go-loader-fill:#707070;--go-loader-text:#8a8a8a;}
+    html,body{background:var(--go-loader-bg)!important;background-color:var(--go-loader-bg)!important;}
+    .loader-page,.loader-page_background,.loader-page.loader-page_background,
+    #preloader,#loader-page{background:var(--go-loader-bg)!important;background-color:var(--go-loader-bg)!important;background-image:none!important;}
+    #preloader{
+      position:fixed!important;inset:0!important;z-index:999999!important;
+      display:flex!important;flex-direction:column!important;
+      align-items:center!important;justify-content:center!important;
+    }
+    #gif-preloader{
+      display:block!important;visibility:visible!important;
+      position:relative!important;top:auto!important;left:auto!important;
+      transform:none!important;margin:0!important;
+      object-fit:contain!important;
+      max-width:min(280px,72vw)!important;
+      max-height:min(80px,18vh)!important;
+      width:auto!important;height:auto!important;
+      /* O cinza existe para neutralizar a arte que veio da marca original (o preloader
+         azul de fabrica), que destoaria da tela preta. A animacao ENVIADA NO PAINEL
+         (/branding/...) e nossa e passa em cor plena — senao o vermelho da marca sai
+         cinza. Quem liga/desliga e a classe abaixo, posta pelo script do preloader. */
+      filter:grayscale(1) brightness(0.88)!important;
+      opacity:1!important;
+    }
+    #gif-preloader.go-marca-propria{ filter:none!important; }
+    #preloader .logo-svg-container{
+      display:flex!important;flex-direction:column!important;align-items:center!important;
+      position:relative!important;left:auto!important;right:auto!important;
+      top:auto!important;bottom:auto!important;
+      width:auto!important;min-height:0!important;
+      margin-top:14px!important;
+      background:transparent!important;
+    }
+    #preloader .logo-svg-container > *:not(#progressWrap):not(#textProgress){display:none!important;}
+    #textProgress{
+      color:var(--go-loader-text)!important;
+      text-align:center!important;
+      font-size:13px!important;
+      line-height:1.4!important;
+      margin:0 0 10px!important;
+      letter-spacing:0.02em!important;
+      background:transparent!important;
+    }
+    #progressWrap{
+      position:relative!important;
+      width:min(280px,72vw)!important;
+      margin:0 auto!important;
+      background:transparent!important;
+    }
+    #glcanvas{background-color:var(--go-loader-bg)!important;}
+    body.go-traderoom-ready #preloader,
+    body.go-traderoom-ready .loader-page,
+    body.go-traderoom-ready .loader-page_background{display:none!important;pointer-events:none!important;visibility:hidden!important;opacity:0!important;}
+    body.go-traderoom-ready,body.go-traderoom-ready #glcanvas{background:#0f1114!important;background-color:#0f1114!important;}
+    .developed-by-qc,.developed-by{display:none!important;}
+    progress#progress{display:block!important;visibility:visible!important;width:100%!important;}
+    progress#progress{height:3px!important;background:var(--go-loader-track)!important;border:none!important;border-radius:0!important;}
+    progress#progress::-webkit-progress-bar{background:var(--go-loader-track)!important;border-radius:0!important;}
+    progress#progress::-webkit-progress-value{background:var(--go-loader-fill)!important;border-radius:0!important;}
+    progress#progress::-moz-progress-bar{background:var(--go-loader-fill)!important;border-radius:0!important;}
+    @media (max-width: 900px) {
+      html.go-mobile, html.go-mobile body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 100dvh !important;
+        overflow: hidden !important;
+        background: var(--go-loader-bg) !important;
+        -webkit-text-size-adjust: 100%;
+      }
+      html.go-mobile canvas, html.go-mobile #glcanvas {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        max-width: 100vw !important;
+        width: 100vw !important;
+        height: 100% !important;
+        min-height: 100dvh !important;
+        touch-action: manipulation;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        z-index: 2 !important;
+        pointer-events: auto !important;
+      }
+      html.go-mobile body.go-traderoom-ready canvas,
+      html.go-mobile body.go-traderoom-ready #glcanvas {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+      html.go-mobile.landscape canvas { max-width: 100vw !important; }
+      html.go-mobile #glcanvas, html.go-mobile .topleft { left: 0 !important; top: 0 !important; }
+    }
+    @media (max-width: 900px) and (orientation: landscape) {
+      html.go-mobile body { overflow-x: hidden !important; }
+    }
+    /* Header traderoom: esconde logo duplicada após WASM carregar (mantém no #preloader) */
+    body:not(.acm10-boot-active) .logo-svg-container:not(#preloader .logo-svg-container),
+    .developed-by-qc{display:none!important;}
+    img[src*="saas.svg"],img[src*="mybroker"],img[src*="Mybroker"]{content:url('/tenants/globaloption.pro/logo_horizontal_white.png')!important;object-fit:contain!important;max-height:40px!important;max-width:min(220px,46vw)!important;width:auto!important;filter:brightness(1.15)!important;opacity:1!important;}
+    /* Depositar — remove glow/hover permanente (hint bônus WASM) */
+    [data-test-id="deposit-button"],
+    [data-test-id="sidebar-deposit-button"],
+    [data-test-id="header-deposit-button"],
+    button[class*="DepositButton"],
+    a[class*="DepositButton"] {
+      animation: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+      outline: none !important;
+    }
+    </style>
+    <script>
+    // Preloader preto — logo animada cinza + barra no centro (estilo Exnova)
+    (function(){
+      var BG = '#000000';
+      var PRELOADER_GIF = (window.__ACM10_MARCA && window.__ACM10_MARCA.preloader_gif) || '/tenants/globaloption.pro/preloader_blue.gif';
+      document.documentElement.style.background = BG;
+      if (document.body) document.body.style.background = BG;
+      function paintLoader(){
+        // roda antes do <body> existir (script no head) — sem esta guarda estourava
+        // "Cannot read properties of null (reading 'classList')" e o resto do bloco morria
+        if (!document.body) return;
+        if (window.__atlasWasmReady || document.body.classList.contains('go-traderoom-ready')) return;
+        document.querySelectorAll('.loader-page,#preloader,#loader-page').forEach(function(el){
+          el.style.background = BG;
+          el.style.backgroundColor = BG;
+        });
+        var gif = document.getElementById('gif-preloader');
+        if (gif) {
+          if (!gif.__goAnim) {
+            gif.__goAnim = true;
+            gif.src = PRELOADER_GIF;
+            // Arte enviada no painel fica em cor plena; a de fabrica segue neutralizada.
+            if (/^\/branding\//.test(PRELOADER_GIF)) gif.classList.add('go-marca-propria');
+          }
+          gif.style.display = 'block';
+        }
+        var gl = document.getElementById('glcanvas');
+        if (gl && document.getElementById('preloader')) gl.style.backgroundColor = BG;
+      }
+      function forceRevealTraderoom(){
+        var mob = window.__GO_IS_MOBILE || window.__GO_PWA;
+        document.querySelectorAll('#preloader,.loader-page,.loader-page_background,.main-loader-wrap').forEach(function(el){
+          try { el.style.display = 'none'; el.style.visibility = 'hidden'; el.style.pointerEvents = 'none'; el.style.opacity = '0'; } catch(e){}
+        });
+        var splash = document.getElementById('go-boot-splash');
+        if (splash) { splash.classList.add('hide','done'); splash.style.display = 'none'; splash.style.visibility = 'hidden'; splash.style.pointerEvents = 'none'; }
+        document.querySelectorAll('canvas,#glcanvas,#traderoom').forEach(function(el){
+          try {
+            el.style.display = 'block';
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+            el.style.pointerEvents = 'auto';
+            el.style.background = 'transparent';
+            el.style.backgroundColor = 'transparent';
+            if (mob && (el.tagName === 'CANVAS' || el.id === 'glcanvas')) {
+              el.style.position = 'fixed';
+              el.style.left = '0';
+              el.style.top = '0';
+              el.style.width = '100%';
+              el.style.height = '100%';
+              el.style.maxWidth = '100vw';
+              el.style.maxHeight = '100dvh';
+              el.style.zIndex = '2';
+            }
+          } catch(e){}
+        });
+        try { window.dispatchEvent(new Event('resize')); } catch(e){}
+        try { window.dispatchEvent(new Event('orientationchange')); } catch(e){}
+      }
+      function startMobileRevealWatch(){
+        if (!(window.__GO_IS_MOBILE || window.__GO_PWA) || window.__goMobileWatchStarted) return;
+        window.__goMobileWatchStarted = true;
+        var tries = 0;
+        var reloaded = false;
+        var iv = setInterval(function(){
+          tries++;
+          forceRevealTraderoom();
+          if (canvasHasPixels() || (window.__atlasPatchCount >= 1 && canvasLooksReady())) {
+            clearInterval(iv);
+            return;
+          }
+          if (!reloaded && tries === 8 && window.__goReloadEngine) {
+            reloaded = true;
+            window.__goReloadEngine();
+          }
+          if (tries >= 24) clearInterval(iv);
+        }, 350);
+      }
+      // REDE DE SEGURANCA DO COMPUTADOR (01/09/2026)
+      // ---------------------------------------------------------------------
+      // O canvas do engine nasce com a classe `inactive`, e o bundle da plataforma faz
+      // `.inactive.svelte-dpf2o4{visibility:hidden}`. Quem troca para `active` e o
+      // proprio engine, chamando `removePreloader()` quando termina o boot dele.
+      //
+      // Medido em producao com conta real: o engine sobe INTEIRO (runtimeReady e
+      // calledRun verdadeiros, atlas remendado, lista de ativos e saldos recebidos,
+      // timeSync entrando a cada segundo) e mesmo assim NUNCA chama esse metodo. O
+      // canvas fica escondido para sempre: a pessoa ve a barra encher ate o fim e
+      // depois a tela preta. Observado por 3 minutos seguidos sem mudar de estado.
+      //
+      // O celular nunca sofreu disso porque ja tinha o `startMobileRevealWatch`, que
+      // forca a revelacao a cada 350 ms. O computador nao tinha rede nenhuma — a gente
+      // escondia o splash e confiava no engine —, e por isso o defeito so aparecia la.
+      //
+      // Aqui vai a MESMA rede, com o gatilho conservador que ja existe para o desktop
+      // (`shouldHideSplash`, que exige atlas remendado, wasm pronto, canvas com tamanho
+      // de verdade e uma carencia depois da lista de ativos). Se o engine revelar
+      // sozinho, esta funcao sai sem tocar em nada — o caminho normal continua sendo o
+      // dele.
+      // A carencia e contada a partir do markReady (que so roda quando a casa ja
+      // considerou o boot terminado e escondeu o splash). NAO usar aqui o
+      // `shouldHideSplash`/`__atlasPatchCount`: esse contador depende da lista de
+      // ativos ter chegado e remendada, e ela falha de vez em quando — medido zero num
+      // carregamento e dois no seguinte. Amarrar a revelacao a um sinal instavel
+      // devolve a tela preta justamente nas cargas em que a lista falhou, que sao as
+      // que mais precisam da rede. O que se exige aqui e o engine VIVO.
+      var REVELA_CARENCIA_MS = 4000;
+      function startDesktopRevealWatch(){
+        if (window.__GO_IS_MOBILE || window.__GO_PWA || window.__goDesktopWatchStarted) return;
+        window.__goDesktopWatchStarted = true;
+        var desde = Date.now();
+        var iv = setInterval(function(){
+          var cnv = document.getElementById('glcanvas') || document.querySelector('canvas');
+          // Engine revelou sozinho: e o caminho esperado, nada a fazer.
+          if (cnv && !cnv.classList.contains('inactive')) { clearInterval(iv); return; }
+          var M = window.GLEngineModule;
+          if (!M || !M.runtimeReady) { if (Date.now() - desde > 90000) clearInterval(iv); return; }
+          if (Date.now() - desde < REVELA_CARENCIA_MS) return;
+          forceRevealTraderoom();
+          if (cnv) { cnv.classList.remove('inactive'); cnv.classList.add('active'); }
+          // O engine calcula o tamanho da cena no resize; sem isto ele pode ficar com a
+          // area de desenho do momento em que estava escondido.
+          try { window.dispatchEvent(new Event('resize')); } catch(e){}
+          clearInterval(iv);
+        }, 500);
+      }
+      // Mesma revelacao, sob demanda — serve para conferir o estado pelo console sem
+      // ter que esperar o vigia.
+      window.__goForceReveal = function(){
+        var cnv = document.getElementById('glcanvas') || document.querySelector('canvas');
+        forceRevealTraderoom();
+        if (cnv) { cnv.classList.remove('inactive'); cnv.classList.add('active'); }
+        try { window.dispatchEvent(new Event('resize')); } catch(e){}
+      };
+      function markReady(){
+        if (window.__goTraderoomOpened) return;
+        window.__goTraderoomOpened = true;
+        if (document.body) document.body.classList.add('go-traderoom-ready');
+        if (window.__goLoaderObserver) {
+          try { window.__goLoaderObserver.disconnect(); } catch(e){}
+        }
+        var pre = document.getElementById('preloader');
+        if (pre) { try { pre.style.display = 'none'; } catch(e){} }
+        document.documentElement.style.background = '#0f1114';
+        if (document.body) document.body.style.background = '#0f1114';
+        if (window.__GO_IS_MOBILE || window.__GO_PWA) forceRevealTraderoom();
+        if (window.__goBootSplashHide) window.__goBootSplashHide();
+        startMobileRevealWatch();
+        startDesktopRevealWatch();
+      }
+      window.__goMarkTraderoomReady = markReady;
+      window.__goOpenTraderoomWhenReady = function(){
+        if (window.__goTraderoomOpened) return;
+        if (!(window.__GO_IS_MOBILE || window.__GO_PWA)) return;
+        if (!window.__atlasPatchCount || window.__atlasPatchCount < 1) return;
+        if (window.__goBootSplashPct) window.__goBootSplashPct(100, 'Abrindo...');
+        setTimeout(markReady, 300);
+      };
+      function syncSplashFromWasm(){
+        if (document.body && document.body.classList.contains('go-traderoom-ready')) return;
+        var prog = document.getElementById('progress');
+        var txt = document.getElementById('textProgress');
+        if (prog && prog.max > 0 && window.__goBootSplashPct) {
+          var pct = Math.round((prog.value / prog.max) * 88);
+          window.__goBootSplashPct(pct, (txt && txt.textContent) || 'Inicializando...');
+        }
+      }
+      function canvasLooksReady(){
+        var cnv = document.querySelector('canvas');
+        if (!cnv) return false;
+        var r = cnv.getBoundingClientRect();
+        var vw = window.innerWidth || 800;
+        var vh = window.innerHeight || 600;
+        var mob = window.__GO_IS_MOBILE;
+        return r.width >= Math.min(mob ? 120 : 200, vw * (mob ? 0.28 : 0.30))
+          && r.height >= Math.min(mob ? 80 : 160, vh * (mob ? 0.18 : 0.22));
+      }
+      function canvasHasPixels(){
+        var cnv = document.querySelector('canvas');
+        if (!cnv || !cnv.width || !cnv.height) return false;
+        try {
+          var gl = cnv.getContext('webgl2') || cnv.getContext('webgl') || cnv.getContext('experimental-webgl');
+          if (!gl) return false;
+          var buf = new Uint8Array(64 * 4);
+          gl.readPixels(Math.max(0, Math.floor(cnv.width / 2) - 4), Math.max(0, Math.floor(cnv.height / 2) - 4), 8, 8, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+          for (var i = 0; i < buf.length; i += 4) {
+            if (buf[i] > 18 || buf[i + 1] > 18 || buf[i + 2] > 18) return true;
+          }
+        } catch (e) {}
+        return false;
+      }
+      function preloaderGone(){
+        var pre = document.getElementById('preloader');
+        if (!pre) return true;
+        if (pre.style.display === 'none' || pre.classList.contains('animation-hide')) return true;
+        try { return pre.offsetParent === null && pre.style.visibility === 'hidden'; } catch (e) { return false; }
+      }
+      function shouldHideSplash(){
+        var mob = window.__GO_IS_MOBILE || window.__GO_PWA;
+        if (mob) {
+          if (!window.__atlasPatchCount || window.__atlasPatchCount < 1) return false;
+          if (!window.__atlasWasmReady) return false;
+          var initAt = window.__atlasInitDataTime || 0;
+          if (canvasHasPixels()) return true;
+          if (canvasLooksReady()) return true;
+          if (initAt && Date.now() - initAt >= 600) return true;
+          return false;
+        }
+        var cnv = document.querySelector('canvas');
+        if (!window.__atlasPatchCount || window.__atlasPatchCount < 1) return false;
+        if (!window.__atlasWasmReady) return false;
+        if (!canvasLooksReady()) return false;
+        var t0 = window.__atlasInitDataTime || window.__atlasWasmReadyTime || 0;
+        if (!t0) return false;
+        if (Date.now() - t0 < 700) return false;
+        if (canvasHasPixels()) return true;
+        return Date.now() - t0 >= 5000;
+      }
+      function waitUntilTraderoomVisible(){
+        var start = Date.now();
+        var wasmReadyAt = 0;
+        var iv = setInterval(function(){
+          syncSplashFromWasm();
+          if (window.__atlasWasmReady && !wasmReadyAt) wasmReadyAt = Date.now();
+          if (window.__goBootSplashPct) {
+            var f = document.getElementById('go-boot-fill');
+            var cur = f ? (parseFloat(f.style.width) || 12) : 12;
+            var cap = shouldHideSplash() ? 100 : 96;
+            if (cur < cap) {
+              var step = (window.__GO_IS_MOBILE || window.__GO_PWA) ? 1.2 : 0.6;
+              window.__goBootSplashPct(Math.min(cap, cur + step), window.__atlasWasmReady ? 'Inicializando...' : 'Conectando...');
+            }
+          }
+          if (shouldHideSplash()) {
+            clearInterval(iv);
+            if (window.__goBootSplashPct) window.__goBootSplashPct(100, 'Abrindo...');
+            setTimeout(markReady, 80);
+            return;
+          }
+          var mob = window.__GO_IS_MOBILE || window.__GO_PWA;
+          if (mob && !window.__atlasWasmReady && Date.now() - start > 8000 && window.__goReloadEngine && !window.__goMobileBootRetried) {
+            window.__goMobileBootRetried = true;
+            window.__goReloadEngine();
+          }
+          if (mob && Date.now() - start > 60000) {
+            clearInterval(iv);
+            if (window.__goBootSplashPct) window.__goBootSplashPct(100, 'Reconectando...');
+            if (window.__goReloadEngine && !window.__goMobileHardRetried) {
+              window.__goMobileHardRetried = true;
+              window.__goReloadEngine();
+            } else if (!window.__goTraderoomOpened) {
+              location.reload();
+            }
+            return;
+          }
+          if (!mob && Date.now() - start > 45000) { clearInterval(iv); markReady(); }
+        }, 200);
+      }
+      window.__goWaitTraderoomVisible = waitUntilTraderoomVisible;
+      window.__goShouldHideSplash = shouldHideSplash;
+      paintLoader();
+      window.__goLoaderObserver = new MutationObserver(paintLoader);
+      window.__goLoaderObserver.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
+      var el = document.getElementById('acm10-boot');
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+      document.documentElement.classList.remove('acm10-boot-active');
+      if (document.body) document.body.classList.remove('acm10-boot-active');
+    })();
+
+    // ===== Footer + logo ACM10 (remove Mybroker / Atlas / saas.svg) =====
+    (function(){
+      var LOGO = (window.__ACM10_MARCA && window.__ACM10_MARCA.logo) || '/tenants/globaloption.pro/logo_horizontal_white.png';
+      var LOGO_FB = '/tenants/globaloption.pro/logo_horizontal.png';
+      var BRAND = window.__GO_BRAND || (window.__ACM10_MARCA_NOME||'ACM10');
+      function patchHeaderLogo(){
+        document.querySelectorAll('[data-test-id="header-logo-link"],[data-test-id="header-logo-link-disabled"]').forEach(function(el){
+          if (el.__acm10hdr) return;
+          el.__acm10hdr = true;
+          Array.from(el.children).forEach(function(ch){
+            if (!ch.classList.contains('acm10-hdr-logo')) ch.style.display = 'none';
+          });
+          var im = el.querySelector('img.acm10-hdr-logo');
+          if (!im) {
+            el.querySelectorAll('img').forEach(function(x){ x.remove(); });
+            im = document.createElement('img');
+            im.className = 'acm10-hdr-logo';
+            el.appendChild(im);
+          }
+          im.src = LOGO;
+          im.alt = BRAND;
+          im.onerror = function(){ this.onerror=null; this.src=LOGO_FB; };
+          im.style.cssText = 'height:38px;width:auto;max-width:min(200px,42vw);object-fit:contain;display:block';
+        });
+      }
+      function patchImgs(){
+        document.querySelectorAll('img').forEach(function(img){
+          if (img.__acm10img) return;
+          var s = (img.getAttribute('src')||'').toLowerCase();
+          if (/saas\.svg|mybroker|my.broker|goption|globaloption\.pro\/logo\.png/i.test(s) && !/logo_horizontal|acm10/i.test(s)){
+            img.__acm10img = true;
+            img.src = LOGO;
+            img.onerror = function(){ this.onerror=null; this.src=LOGO_FB; };
+            img.alt = 'ACM10 Tecnologia';
+            img.style.maxHeight = (window.__GO_IS_MOBILE ? '24px' : '32px');
+            img.style.objectFit = 'contain';
+            img.style.cursor = 'pointer';
+            if (!img.closest || !img.closest('a[href*="acm10.tech"]')) {
+              var wrap = document.createElement('a');
+              wrap.href = 'https://acm10.tech';
+              wrap.target = '_blank';
+              wrap.rel = 'noopener';
+              wrap.style.display = 'inline-block';
+              wrap.style.lineHeight = '0';
+              if (img.parentNode) { img.parentNode.insertBefore(wrap, img); wrap.appendChild(img); }
+            }
+          }
+        });
+      }
+      function linkify(){
+        patchImgs();
+        var nodes = document.querySelectorAll('a,span,div,p,footer');
+        for (var i=0;i<nodes.length;i++){
+          var n = nodes[i];
+          if (n.__acm10done) continue;
+          if (n.id === 'acm10-boot' || (n.closest && n.closest('#acm10-boot'))) continue;
+          var t = (n.textContent||'').trim();
+          if (/Desenvolvido por|Developed by|Mybroker|My ?Broker|Atlas Broker|Atlas Brooker|QuadCode/i.test(t) && n.children.length <= 3){
+            if (n.querySelector && n.querySelector('a[href*="acm10.tech"]')) { n.__acm10done = true; continue; }
+            n.__acm10done = true;
+            n.innerHTML = '<span style="color:#9ca3af;font-size:12px;margin-right:8px">Desenvolvido por</span><img src="' + ((window.__ACM10_MARCA && window.__ACM10_MARCA.rodape) || '/tenants/globaloption.pro/logo_horizontal_white.png') + '" alt="ACM10" style="height:22px;width:auto;max-width:140px;object-fit:contain;vertical-align:middle;filter:brightness(1.2);opacity:1" onerror="this.style.display=\'none\'">';
+            if (n.tagName === 'A'){ n.setAttribute('href','https://acm10.tech'); n.setAttribute('target','_blank'); }
+          }
+        }
+      }
+      var run = function(){ try{ patchHeaderLogo(); linkify(); }catch(e){} };
+      function startLinkify(){
+        run();
+        try { new MutationObserver(run).observe(document.documentElement, {childList:true,subtree:true}); } catch(e){}
+        setInterval(run, 4000);
+      }
+      if (document.body) {
+        if (window.__atlasWasmReady) startLinkify();
+        else {
+          var w=setInterval(function(){
+            if (window.__atlasWasmReady || (window.__atlasPatchCount>=1)){
+              clearInterval(w); startLinkify();
+            }
+          }, 800);
+        }
+      } else document.addEventListener('DOMContentLoaded', function(){
+        setTimeout(startLinkify, window.__GO_IS_MOBILE ? 1200 : 600);
+      });
+    })();
+    </script>
+    <link rel="icon" href="/branding/favicon.png" id="go-favicon">
+    <script>
+    window.__GO_FAVICON='/tenants/globaloption.pro/favicon.png';
+    window.__GO_BRAND=(window.__ACM10_MARCA_NOME||'ACM10');
+    window.__goBrokerConfigPromise = window.__goBrokerConfigPromise || fetch('/api/broker/config').then(function(r){return r.json();}).then(function(d){
+      if(!d.success||!d.data||!d.data.broker)return d;
+      var b=d.data.broker;
+      var nm=(b.name||'').trim();
+      if(!nm||/global\s*option|exnova|my\s*broker|atlas/i.test(nm)) nm=(window.__ACM10_MARCA_NOME||'ACM10');
+      window.__GO_BRAND=nm;
+      window.__GO_FAVICON=b.favicon_url||window.__GO_FAVICON;
+      window.__GO_BROKER=b;
+      document.title=window.__GO_BRAND;
+      var m1=document.querySelector('meta[name="application-name"]'); if(m1)m1.content=window.__GO_BRAND;
+      var m2=document.querySelector('meta[name="apple-mobile-web-app-title"]'); if(m2)m2.content=window.__GO_BRAND;
+      if (window.__goLockAppName) window.__goLockAppName();
+      var fi=document.getElementById('go-favicon');
+      if(fi)fi.href=window.__GO_FAVICON+(window.__GO_FAVICON.indexOf('?')<0?'?v='+Date.now():'');
+      return d;
+    }).catch(function(){return null;});
+    window.__goBrokerConfigPromise.then(function(){}).catch(function(){});
+    </script>
+    <script>
+    // Cache bust suave — NÃO apaga IndexedDB nem recarrega (isso quebrava o WASM)
+    (function(){
+      var TARGET_V = String(window.__GO_CACHE_V || '1783491935');
+      window.__GO_CACHE_V = TARGET_V;
+      try {
+        var stored = localStorage.getItem('__atlas_v');
+        if (stored !== TARGET_V) {
+          localStorage.setItem('__atlas_v', TARGET_V);
+          /* Nao apaga cache HTTP do WASM (~13MB) — re-download mata mobile */
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs){
+              regs.forEach(function(r){ r.unregister(); });
+            });
+          }
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.addEventListener('message', function(e){
+            if (e.data && e.data.type === 'SW_UPDATED' && e.data.reload) {
+              console.log('[GO] SW update — reload ignorado (evita loop)');
+            }
+          });
+        }
+      } catch(e){}
+    })();
+
+    // LOGOUT: WASM chama /api/v1.0/logout no boot — NÃO redirecionar nem limpar cookie (causava loop).
+    // (interceptor removido — handler também não invalida mais ssid no logout)
+
+    // ===== CF RUM beacon drop + Exnova analytics events drop =====
+    // - /cdn-cgi/* (RUM): CF não responde, vira 404
+    // - /v1/events e /api/v1/events: telemetria interna do engine (não usamos)
+    // Curto-circuitamos XHR/fetch retornando 204 sem network — economiza CPU+banda.
+    (function(){
+      var RX = /(\/cdn-cgi\/(rum|beacon))|(\/(api\/)?v1\/events($|\?))|(apptelemetry\.xyz)|(\/api\/32\/store)/i;
+      // Patch XMLHttpRequest
+      var _open = XMLHttpRequest.prototype.open;
+      var _send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(method, url){
+        this.__atlasDropRum = typeof url === 'string' && RX.test(url);
+        return _open.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function(){
+        if (this.__atlasDropRum) {
+          var self = this;
+          // Simula resposta 204 sem network call
+          setTimeout(function(){
+            try {
+              Object.defineProperty(self, 'readyState', {value:4, configurable:true});
+              Object.defineProperty(self, 'status',     {value:204, configurable:true});
+              Object.defineProperty(self, 'statusText', {value:'No Content', configurable:true});
+              Object.defineProperty(self, 'responseText', {value:'', configurable:true});
+              Object.defineProperty(self, 'response',     {value:'', configurable:true});
+              Object.defineProperty(self, 'responseURL',  {value:'', configurable:true});
+              self.getAllResponseHeaders = function(){ return ''; };
+              self.getResponseHeader     = function(){ return null; };
+              if (typeof self.onreadystatechange === 'function') self.onreadystatechange();
+              if (typeof self.onload === 'function') self.onload();
+              if (typeof self.onloadend === 'function') self.onloadend();
+            } catch(e){}
+          }, 0);
+          return;
+        }
+        return _send.apply(this, arguments);
+      };
+      // Patch fetch
+      var _fetch = window.fetch;
+      if (_fetch) {
+        window.fetch = function(input, init){
+          var url = typeof input === 'string' ? input : (input && input.url) || '';
+          if (RX.test(url)) {
+            return Promise.resolve(new Response(null, {status:204, statusText:'No Content'}));
+          }
+          return _fetch.apply(this, arguments);
+        };
+      }
+    })();
+
+    // Impede redirect globaloption.pro → globaloption.globaloption.pro (subdomain errado no appinit)
+    (function(){
+      var APPINIT_RX = /\/(api\/appinit|v1\/appinit)(\?|$)/i;
+      function sanitizeAppinit(data){
+        if (!data || !data.company) return data;
+        var sd = String(data.company.subdomain || '').trim();
+        var dom = String(data.company.domain || '').trim();
+        var apex = dom.split('.')[0] || '';
+        if (!sd || sd.toLowerCase() === apex.toLowerCase()) data.company.subdomain = '';
+        data.company.name = (window.__ACM10_MARCA_NOME||'ACM10');
+        if (data.brand) data.brand.name = (window.__ACM10_MARCA_NOME||'ACM10');
+        return data;
+      }
+      function appinitStub(){
+        return sanitizeAppinit({
+          company: { subdomain: '', domain: location.hostname.replace(/^www\./, ''), name: (window.__ACM10_MARCA_NOME||'ACM10') },
+          brand: { name: (window.__ACM10_MARCA_NOME||'ACM10') }
+        });
+      }
+      var _fetch = window.fetch;
+      if (_fetch) {
+        window.fetch = function(input, init){
+          var url = typeof input === 'string' ? input : (input && input.url) || '';
+          var p = _fetch.apply(this, arguments);
+          if (!APPINIT_RX.test(url)) return p;
+          return p.then(function(res){
+            if (!res || !res.ok) {
+              return new Response(JSON.stringify(appinitStub()), {
+                status: 200, headers: {'Content-Type': 'application/json'}
+              });
+            }
+            return res.clone().json().then(function(data){
+              return new Response(JSON.stringify(sanitizeAppinit(data)), {
+                status: res.status,
+                statusText: res.statusText,
+                headers: {'Content-Type': 'application/json'}
+              });
+            }).catch(function(){
+              return new Response(JSON.stringify(appinitStub()), {
+                status: 200, headers: {'Content-Type': 'application/json'}
+              });
+            });
+          }).catch(function(){
+            return new Response(JSON.stringify(appinitStub()), {
+              status: 200, headers: {'Content-Type': 'application/json'}
+            });
+          });
+        };
+      }
+      var _open = XMLHttpRequest.prototype.open;
+      var _send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(method, url){
+        this.__goAppinit = typeof url === 'string' && APPINIT_RX.test(url);
+        return _open.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function(){
+        if (this.__goAppinit) {
+          this.addEventListener('load', function(){
+            try {
+              if (this.status >= 200 && this.status < 300 && this.responseText) {
+                var data = JSON.parse(this.responseText);
+                sanitizeAppinit(data);
+                Object.defineProperty(this, 'responseText', {value: JSON.stringify(data), configurable: true});
+                Object.defineProperty(this, 'response', {value: this.responseText, configurable: true});
+              }
+            } catch(e){}
+          });
+        }
+        return _send.apply(this, arguments);
+      };
+    })();
+
+    // ===== ASSET OVERRIDES LIVE — força commission e flags em todo initialization-data =====
+    // Busca overrides de /api/asset-overrides e reescreve mensagens WS do Exnova
+    // antes do WASM consumir. Permite atualização em tempo real via polling.
+    (function(){
+      window.__atlasAssetOverrides = {}; // { "76": {payout:95, enabled:true, suspended:false}, ... }
+      window.__atlasPatchCount = 0;
+      window.__atlasUserAvatar = "";   // URL do avatar do user logado
+      window.__atlasUserName = null;   // {first_name, last_name, full, nickname}
+      var POLL_MS = 30000;  // 30s (era 5s — overrides mudam pouco)
+      function pullOverrides(){
+        fetch('/api/asset-overrides', {credentials:'include'})
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(j){
+            if (j && j.overrides) {
+              window.__atlasAssetOverrides = j.overrides;
+              console.log('[ATLAS-OV] overrides loaded:', Object.keys(j.overrides).length, j.overrides);
+            }
+          })
+          .catch(function(e){ console.warn('[ATLAS-OV] fetch error', e); });
+      }
+      function defaultAvatarAbs(uid){
+        var n = ((parseInt(uid, 10) || 1) % 12) + 1;
+        return location.origin + '/storage/avatars/' + n + '.png';
+      }
+      function pullAvatar(){
+        fetch('/v1/users/current/profile', {credentials:'include'})
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(j){
+            try {
+              var u = (j && j.result) || {};
+              var kyc = u.kyc || {};
+              window.__goKycVerified = !!(kyc.isDocumentsApproved || kyc.status === 2 || u.finance_state === 'verified');
+              window.__goUid = u.user_id || window.__goUid;
+              var fromProfile = u.avatar_url || u.avatar || u.avatarImage || u.image_url || u.image;
+              // a pagina ja vem com a miniatura 128 injetada pelo servidor: nao troca por outra
+              if (fromProfile && !window.__atlasUserAvatar) {
+                window.__atlasUserAvatar = fromProfile.indexOf('http') === 0 ? fromProfile : (location.origin + (fromProfile.charAt(0) === '/' ? fromProfile : '/' + fromProfile));
+              } else if (!window.__atlasUserAvatar) {
+                window.__atlasUserAvatar = defaultAvatarAbs(u.user_id);
+              }
+            } catch(e){}
+          }).catch(function(){});
+        fetch('/v1/avatars/current', {credentials:'include'})
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(j){
+            try {
+              var res = (j && (j.result || j.data)) || j || {};
+              var thumbs = res.thumbnails;
+              var u = res.url || res.image || res.thumbnail;
+              if (thumbs && thumbs.length) {
+                var t = thumbs.find(function(x){ return x.size && x.size.width === 128; })
+                   || thumbs.find(function(x){ return x.size && x.size.width === 64; }) || thumbs[0];
+                if (t && t.url) u = t.url;
+              }
+              if (u) {
+                var abs = u.indexOf('http') === 0 ? u : (location.origin + (u.charAt(0) === '/' ? u : '/' + u));
+                window.__atlasUserAvatar = abs;
+                // O engine so aceita a miniatura de 128px SEM query string (conferido na
+                // conta real da Exnova). O ?v= existe para furar o cache do navegador na
+                // sobreposicao em HTML, mas nao pode ir para o engine.
+                window.__atlasUserAvatar128 = abs.split('?')[0];
+              } else if (!window.__atlasUserAvatar) {
+                window.__atlasUserAvatar = defaultAvatarAbs(window.__goUid);
+              }
+              if (window.__goRefreshHeaderAvatar) window.__goRefreshHeaderAvatar();
+            } catch(e){}
+          }).catch(function(){});
+      }
+      function deferNonCritical(fn, delayMs){
+        if (!window.__GO_IS_MOBILE) { fn(); return; }
+        var wait = delayMs || 2500;
+        function run(){
+          if (window.__atlasWasmReady || (window.__atlasPatchCount && window.__atlasPatchCount >= 1)) fn();
+          else setTimeout(run, 400);
+        }
+        setTimeout(run, wait);
+      }
+      pullGoBalance();
+      pullAvatar();
+      deferNonCritical(function(){
+        pullOverrides();
+        pullAvatar();
+      }, 500);
+      setInterval(pullOverrides, POLL_MS);
+      // Avatar muda só quando user faz upload — não vale pollar.
+      // Re-fetch só quando user voltar pra aba (visibility change).
+      document.addEventListener('visibilitychange', function(){
+        if (document.visibilityState === 'visible') pullAvatar();
+      });
+
+      // ===== SALDOS — bloqueia leak Exnova (~460k) sem misturar real (type 1) e demo (type 4) =====
+      window.__goRealBalance = null;
+      window.__goDemoBalance = null;
+      window.__goRealBalanceId = null;
+      window.__goDemoBalanceId = null;
+      window.__goOpenMargin = 0;
+      window.__goBalanceMaxSanity = 500000;
+
+      function parseGoBrl(v) {
+        var n = parseFloat(v);
+        return isNaN(n) ? null : n;
+      }
+      function balanceWireToBrl(b) {
+        if (!b) return null;
+        var n = parseGoBrl(b.amount);
+        if (n === null) return null;
+        if (parseInt(b.type, 10) === 1) return n / 1e6;
+        return n;
+      }
+      function isSaneGoBalance(n) {
+        return n !== null && n >= 0 && n < window.__goBalanceMaxSanity;
+      }
+      function getGoBalanceType(msg) {
+        if (!msg || typeof msg !== 'object') return 1;
+        if (msg.type !== undefined && msg.type !== null) return parseInt(msg.type, 10);
+        if (msg.current_balance && msg.current_balance.type !== undefined && msg.current_balance.type !== null) {
+          return parseInt(msg.current_balance.type, 10);
+        }
+        return 1;
+      }
+      function isDemoBalanceType(t) { return parseInt(t, 10) === 4; }
+      function applyGoBalanceFields(target, bal) {
+        if (!target || typeof target !== 'object') return;
+        var n = Math.max(0, Math.round(bal * 100) / 100);
+        var s = String(n);
+        target.cash = s;
+        target.equity = s;
+        target.equity_usd = s;
+        target.available = s;
+        target.amount = n;
+        target.margin = '0';
+        target.isolated_margin = '0';
+        if (target.current_balance && typeof target.current_balance === 'object') {
+          target.current_balance.amount = n;
+          target.current_balance.new_amount = n;
+          target.current_balance.enrolled_amount = n;
+          target.current_balance.available_for_withdrawal = n;
+        }
+      }
+      function patchGoBalanceMessage(parsed) {
+        if (!parsed || !parsed.name) return false;
+        var name = parsed.name;
+        var changed = false;
+        if (name === 'positions-state' && parsed.msg && Array.isArray(parsed.msg.positions)) {
+          var totalM = 0;
+          for (var pi = 0; pi < parsed.msg.positions.length; pi++) {
+            var pp = parsed.msg.positions[pi];
+            if (!pp) continue;
+            totalM += parseFloat(pp.margin || pp.invest || 0) || 0;
+          }
+          window.__goOpenMargin = totalM;
+        }
+        if (name === 'position-changed' && parsed.msg) {
+          var pm = parsed.msg;
+          if (pm.status === 'closed') window.__goOpenMargin = 0;
+          else if (pm.status === 'open') {
+            window.__goOpenMargin = parseFloat(pm.invest || pm.invest_enrolled || 0) || 0;
+          }
+          // Saldo é atualizado pelo servidor (emit_balance_update) — não debitar no cliente
+        }
+        if (name === 'balances' && Array.isArray(parsed.msg)) {
+          for (var bi = 0; bi < parsed.msg.length; bi++) {
+            var b = parsed.msg[bi];
+            if (!b) continue;
+            var bamt = balanceWireToBrl(b);
+            if (b.type === 1 && isSaneGoBalance(bamt)) {
+              window.__goRealBalance = bamt;
+              window.__goRealBalanceId = b.id;
+            }
+            if (b.type === 4 && isSaneGoBalance(bamt)) {
+              window.__goDemoBalance = bamt;
+              window.__goDemoBalanceId = b.id;
+            }
+          }
+          return true;
+        }
+        if (name === 'marginal-balance' || name === 'balance-changed') {
+          var msg = parsed.msg;
+          if (!msg || typeof msg !== 'object') return false;
+          var balType = getGoBalanceType(msg);
+          var leaked = parseGoBrl(msg.equity || msg.cash || msg.available ||
+            (msg.current_balance && msg.current_balance.amount));
+          // Só corrige leak absurdo do master Exnova (~460k+) — confia no wsproxy para valores normais
+          if (leaked !== null && leaked >= 500000) {
+            var fixBal = isDemoBalanceType(balType) ? window.__goDemoBalance : window.__goRealBalance;
+            if (fixBal !== null) {
+              applyGoBalanceFields(msg, fixBal);
+              if (msg.current_balance) applyGoBalanceFields(msg.current_balance, fixBal);
+              return true;
+            }
+          }
+          if (isSaneGoBalance(leaked)) {
+            if (isDemoBalanceType(balType)) window.__goDemoBalance = leaked;
+            else window.__goRealBalance = leaked;
+          }
+          return false;
+        }
+        if (name === 'profile' || name === 'profile-changed' || name === 'user-profile-client' || name === 'account-changed') {
+          var m = parsed.msg || {};
+          var targets = m.result ? [m.result] : [m];
+          for (var ti = 0; ti < targets.length; ti++) {
+            var t = targets[ti];
+            if (!t) continue;
+            if (Array.isArray(t.balances)) {
+              for (var bk = 0; bk < t.balances.length; bk++) {
+                var bb = t.balances[bk];
+                if (!bb) continue;
+                var bbAmt = balanceWireToBrl(bb);
+                if (bb.type === 1 && isSaneGoBalance(bbAmt) && window.__goRealBalance === null) {
+                  window.__goRealBalance = bbAmt;
+                  window.__goRealBalanceId = bb.id;
+                }
+                if (bb.type === 4 && isSaneGoBalance(bbAmt) && window.__goDemoBalance === null) {
+                  window.__goDemoBalance = bbAmt;
+                  window.__goDemoBalanceId = bb.id;
+                }
+              }
+            }
+          }
+          return changed;
+        }
+        return false;
+      }
+      function pullGoBalance() {
+        fetch('/v1/users/current/profile', {credentials:'include'})
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(j){
+            try {
+              var u = (j && j.result) || j || {};
+              var b = parseGoBrl(u.balance);
+              if (isSaneGoBalance(b) && window.__goRealBalance === null) window.__goRealBalance = b;
+              if (Array.isArray(u.balances)) {
+                for (var i = 0; i < u.balances.length; i++) {
+                  var bb = u.balances[i];
+                  if (!bb) continue;
+                  var bbAmt = balanceWireToBrl(bb);
+                  if (bb.type === 1 && isSaneGoBalance(bbAmt)) {
+                    if (window.__goRealBalance === null) window.__goRealBalance = bbAmt;
+                    window.__goRealBalanceId = bb.id;
+                  }
+                  if (bb.type === 4 && isSaneGoBalance(bbAmt)) {
+                    if (window.__goDemoBalance === null) window.__goDemoBalance = bbAmt;
+                    window.__goDemoBalanceId = bb.id;
+                  }
+                }
+              }
+            } catch(e){}
+          }).catch(function(){});
+      }
+
+      function patchDrawingToolsConfigs(configs) {
+        if (!Array.isArray(configs)) return false;
+        var changed = false;
+        for (var i = 0; i < configs.length; i++) {
+          var item = configs[i];
+          if (!item || !item.config) continue;
+          var cfg = item.config;
+          if (item.name === 'traderoom_gl_welcome') {
+            if (cfg.interfaceTourPassed !== true) { cfg.interfaceTourPassed = true; changed = true; }
+            if (cfg.stakeHintShown !== true) { cfg.stakeHintShown = true; changed = true; }
+          }
+          if (item.name === 'margin-trading-settings') {
+            if (cfg.enable_advanced_ui !== true) { cfg.enable_advanced_ui = true; changed = true; }
+          }
+          if (item.name === 'traderoom_gl_common' && Array.isArray(cfg.alreadySettedFlags)) {
+            var nf = cfg.alreadySettedFlags.filter(function(f){ return f !== 'hide_multipliers_disabled_pro'; });
+            if (nf.length !== cfg.alreadySettedFlags.length) { cfg.alreadySettedFlags = nf; changed = true; }
+          }
+          if (item.name === 'traderoom_gl_trading') {
+            if (cfg.isPlotAlertsVisible !== true) { cfg.isPlotAlertsVisible = true; changed = true; }
+          }
+        }
+        return changed;
+      }
+
+      function patchDepositHintConfigs(configs) {
+        if (!Array.isArray(configs)) return false;
+        var changed = false;
+        for (var di = 0; di < configs.length; di++) {
+          var item = configs[di];
+          if (!item || !item.config) continue;
+          var cfg = item.config;
+          if (item.name === 'traderoom_gl_welcome') {
+            /* false = modal "Adicionar fundos" pode abrir (depositar / sem saldo real) */
+            if (cfg.depositBonusHintShown !== false) { cfg.depositBonusHintShown = false; changed = true; }
+            if (cfg.stakeHintShown !== true) { cfg.stakeHintShown = true; changed = true; }
+            if (cfg.customDemoBalanceHintShown !== true) { cfg.customDemoBalanceHintShown = true; changed = true; }
+            if (cfg.interfaceTourPassed !== true) { cfg.interfaceTourPassed = true; changed = true; }
+          }
+          if (item.name === 'traderoom_gl_common') {
+            if (cfg.lastDepositBonusStatus !== 'unknown') { cfg.lastDepositBonusStatus = 'unknown'; changed = true; }
+            if (cfg.isCashbackPromoHidden !== true) { cfg.isCashbackPromoHidden = true; changed = true; }
+            if (cfg.isBlitzPromoHidden !== true) { cfg.isBlitzPromoHidden = true; changed = true; }
+            if (cfg.isCashbackTooltipClosed !== true) { cfg.isCashbackTooltipClosed = true; changed = true; }
+          }
+          if (item.name === 'marketing_data') {
+            if (cfg.first_deposit !== false) { cfg.first_deposit = false; changed = true; }
+            if (cfg.first_deposit_try !== false) { cfg.first_deposit_try = false; changed = true; }
+            if (cfg.first_demo_deal !== true) { cfg.first_demo_deal = true; changed = true; }
+          }
+        }
+        return changed;
+      }
+
+      function patchMobilePortfolioConfig(configs){
+        if (!window.__GO_IS_MOBILE || !Array.isArray(configs)) return false;
+        var changed = false;
+        for (var i = 0; i < configs.length; i++) {
+          var item = configs[i];
+          if (!item || item.name !== 'traderoom_gl_common') continue;
+          var cfg = item.config = item.config || {};
+          if (cfg.isPortfolioHidden !== true) { cfg.isPortfolioHidden = true; changed = true; }
+          if (cfg.portfolioWasHiddenOnce !== true) { cfg.portfolioWasHiddenOnce = true; changed = true; }
+          if (cfg.openedLeftPanelSections) { cfg.openedLeftPanelSections = ''; changed = true; }
+          if (cfg.leftPanelButtonsStates && cfg.leftPanelButtonsStates.length) {
+            cfg.leftPanelButtonsStates = [];
+            changed = true;
+          }
+          if (cfg.isSignalsOpened) { cfg.isSignalsOpened = false; changed = true; }
+        }
+        return changed;
+      }
+
+      function patchAnyMobilePortfolioMessage(parsed){
+        if (!window.__GO_IS_MOBILE || !parsed) return false;
+        var changed = false;
+        if (parsed.msg && Array.isArray(parsed.msg.configs)) {
+          if (patchMobilePortfolioConfig(parsed.msg.configs)) changed = true;
+        }
+        var body = parsed.msg && (parsed.msg.body || parsed.body);
+        if (body && Array.isArray(body.configs)) {
+          if (patchMobilePortfolioConfig(body.configs)) changed = true;
+        }
+        return changed;
+      }
+
+      function patchMobilePortfolioText(text){
+        if (!window.__GO_IS_MOBILE || typeof text !== 'string') return text;
+        if (text.indexOf('isPortfolioHidden') === -1) return text;
+        try {
+          var parsed = JSON.parse(text);
+          if (patchAnyMobilePortfolioMessage(parsed) || patchMobileUserSettingsMessage(parsed)) {
+            return JSON.stringify(parsed);
+          }
+        } catch(e){}
+        if (text.indexOf('"isPortfolioHidden":false') !== -1) {
+          return text
+            .replace(/"isPortfolioHidden"\s*:\s*false/g, '"isPortfolioHidden":true')
+            .replace(/"portfolioWasHiddenOnce"\s*:\s*false/g, '"portfolioWasHiddenOnce":true');
+        }
+        return text;
+      }
+
+      function patchAnyDepositConfigs(parsed){
+        if (!parsed) return false;
+        var changed = false;
+        if (parsed.msg && Array.isArray(parsed.msg.configs)) {
+          changed = patchDepositHintConfigs(parsed.msg.configs) || changed;
+          changed = patchDrawingToolsConfigs(parsed.msg.configs) || changed;
+        }
+        var body = parsed.msg && (parsed.msg.body || parsed.body);
+        if (body && Array.isArray(body.configs)) {
+          changed = patchDepositHintConfigs(body.configs) || changed;
+          changed = patchDrawingToolsConfigs(body.configs) || changed;
+        }
+        return changed;
+      }
+
+      function patchMobileUserSettingsMessage(parsed){
+        if (!parsed) return false;
+        var changed = patchAnyDepositConfigs(parsed);
+        if (parsed.name === 'user-settings' && parsed.msg) {
+          if (window.__GO_IS_MOBILE) changed = patchMobilePortfolioConfig(parsed.msg.configs) || changed;
+        }
+        return changed;
+      }
+
+      function patchCashboxUser(obj){
+        if (!obj || typeof obj !== 'object') return false;
+        var targets = [];
+        if (obj.result && typeof obj.result === 'object') targets.push(obj.result);
+        if (obj.user && typeof obj.user === 'object') targets.push(obj.user);
+        if (obj.profile && typeof obj.profile === 'object') targets.push(obj.profile);
+        if (!targets.length && (obj.user_id || obj.id)) targets.push(obj);
+        var changed = false;
+        for (var i = 0; i < targets.length; i++) {
+          var t = targets[i];
+          if (!t || typeof t !== 'object') continue;
+          t.finance_state = 'verified';
+          t.kyc_confirmed = {poi:true, poa:true, bank_card:true, selfie_poi:true};
+          t.is_vip = true;
+          t.is_vip_group = true;
+          var kyc = t.kyc;
+          if (!kyc || typeof kyc !== 'object') { kyc = {}; t.kyc = kyc; }
+          kyc.isPhoneFilled = true;
+          kyc.isProfileFilled = true;
+          kyc.isPhoneConfirmed = true;
+          kyc.isDocumentsUploadSkipped = true;
+          changed = true;
+        }
+        return changed;
+      }
+
+      // Função exposta pro glengine.js chamar direto (hook emscripten).
+      // Agora cobre: initialization-data, profile, profile-changed, user-profile-client, account-changed
+      window.__atlasPatchInit = function(text){
+        try {
+          text = patchMobilePortfolioText(text);
+          var parsed = JSON.parse(text);
+          if (!parsed) return text;
+          var name = parsed.name;
+          // initialization-data → aplica asset overrides
+          if (name === 'initialization-data' && parsed.msg) {
+            applyToInit(parsed.msg);
+            patchCashboxUser(parsed.msg);
+            window.__atlasPatchCount = (window.__atlasPatchCount || 0) + 1;
+            window.__atlasInitDataTime = Date.now();
+            try { window.__goBootPct = Math.max(window.__goBootPct || 0, 52); } catch(e){}
+            if (window.__goBootSplashPct) window.__goBootSplashPct(92, 'Abrindo...');
+            if (window.__goOpenTraderoomWhenReady) window.__goOpenTraderoomWhenReady();
+            console.log('[ATLAS-OV] glue-patched init-data #' + window.__atlasPatchCount);
+            return JSON.stringify(parsed);
+          }
+          if (patchMobileUserSettingsMessage(parsed)) {
+            return JSON.stringify(parsed);
+          }
+          if (patchAnyDepositConfigs(parsed)) {
+            return JSON.stringify(parsed);
+          }
+          if (patchGoBalanceMessage(parsed)) {
+            return JSON.stringify(parsed);
+          }
+          if (patchAnyMobilePortfolioMessage(parsed)) {
+            return JSON.stringify(parsed);
+          }
+          // customer-steps → sempre 100% (remove anel 20% no traderoom)
+          if (name === 'customer-steps' && parsed.msg) {
+            parsed.msg.completion_percent = 100;
+            if (Array.isArray(parsed.msg.steps)) {
+              parsed.msg.steps.forEach(function(s){ if (s) s.state = 'PASSED'; });
+              var hasPhoto = parsed.msg.steps.some(function(s){ return s && (s.step_id === 'PROFILE_PHOTO' || s.step_id === 'AVATAR'); });
+              if (!hasPhoto) {
+                parsed.msg.steps.push({step_id:'PROFILE_PHOTO',state:'PASSED',is_skip_allowed:false,title:'Foto de perfil',reason:null});
+              }
+              var hasDone = parsed.msg.steps.some(function(s){ return s && s.step_id === 'KYC_DONE'; });
+              if (!hasDone) {
+                parsed.msg.steps.push({step_id:'KYC_DONE',state:'PASSED',is_skip_allowed:false,title:'Verificação concluída',reason:null});
+              }
+            }
+            parsed.msg.autoselect = 'KYC_DONE';
+            return JSON.stringify(parsed);
+          }
+          // profile* → injeta avatar URL nosso ANTES do WASM parsear
+          if ((name === 'profile' || name === 'profile-changed' || name === 'user-profile-client' || name === 'account-changed') && parsed.msg) {
+            var msg = parsed.msg || {};
+            var targets = [];
+            if (msg && typeof msg === 'object') {
+              if (msg.result && typeof msg.result === 'object') targets.push(msg.result);
+              else targets.push(msg);
+            }
+            var patched = false;
+            for (var i = 0; i < targets.length; i++) {
+              var t = targets[i];
+              if (!t || typeof t !== 'object') continue;
+              if (window.__atlasUserAvatar) {
+                t.avatar = window.__atlasUserAvatar;
+                t.avatar_url = window.__atlasUserAvatar;
+                t.avatarImage = window.__atlasUserAvatar;
+                t.image_url = window.__atlasUserAvatar;
+                t.image = window.__atlasUserAvatar;
+                // `img_url` agora VAI: conferido numa conta real da Exnova, e por este
+                // campo (no frame user-profile-client) que o engine desenha a foto — mas
+                // so com a MINIATURA de 128px, em URL absoluta e sem query string. Quem
+                // monta isso e o servidor (broker.js -> fotoDoCabecalho); aqui mandamos
+                // o mesmo endereco para a versao HTTP do perfil.
+                if (window.__atlasUserAvatar128) t.img_url = window.__atlasUserAvatar128;
+                patched = true;
+              } else if (t.user_id || t.id) {
+                var _defAv = defaultAvatarAbs(t.user_id || t.id);
+                t.avatar = t.avatar_url = t.avatarImage = t.image_url = t.image = t.img_url = _defAv;
+                window.__atlasUserAvatar = _defAv;
+                patched = true;
+              }
+              var kyc = t.kyc;
+              if (!kyc || typeof kyc !== 'object') { kyc = {}; t.kyc = kyc; }
+              kyc.isPhoneFilled = true;
+              kyc.isProfileFilled = true;
+              kyc.isPhoneConfirmed = true;
+              kyc.isDocumentsUploadSkipped = true;
+              if (kyc.isDocumentsApproved || kyc.status === 2) {
+                kyc.status = 2;
+                kyc.isDocumentsApproved = true;
+                kyc.isDocumentsNeeded = false;
+                kyc.isPhoneNeeded = false;
+              }
+              t.finance_state = 'verified';
+              t.kyc_confirmed = {poi:true, poa:true, bank_card:true, selfie_poi:true};
+              /* VIP (coroa/beneficios) vem do admin, pelo campo `vip` do usuario — nao e
+                 forcado aqui. Ate 04/08/2026 forcavamos `is_vip_group` porque no build
+                 antigo do engine (glengine6845c7e6) era ele que ligava o fundo opaco da
+                 tela de deposito, ao custo de trocar o icone de pessoa pela coroa. O
+                 build atual (glengine4225b03f, o da Exnova) desenha a tela opaca sempre,
+                 entao o truque saiu e o icone de pessoa voltou. */
+              patched = true;
+            }
+            if (patched) {
+              if (!window.__atlasAvatarPatchLogged) {
+                window.__atlasAvatarPatchLogged = true;
+                console.log('[ATLAS-AVATAR] glue-patched ' + name);
+              }
+              return JSON.stringify(parsed);
+            }
+          }
+        } catch(e){ /* silent */ }
+        return text;
+      };
+
+      function applyToInit(msgObj){
+        var ov = window.__atlasAssetOverrides;
+        if (!ov || typeof msgObj !== 'object' || !msgObj) return;
+        var types = ['turbo','binary','blitz','digital','trade-rush'];
+        for (var t=0;t<types.length;t++){
+          var instr = msgObj[types[t]];
+          if (!instr || typeof instr !== 'object') continue;
+          var actives = instr.actives;
+          if (!actives || typeof actives !== 'object') continue;
+          for (var aid in actives){
+            var a = actives[aid];
+            if (!a || typeof a !== 'object') continue;
+            var o = ov[aid] || ov[String(aid)];
+            if (!o) continue;
+            // Força commission a partir do payout override
+            if (typeof o.payout === 'number') {
+              a.option = a.option || {};
+              a.option.profit = a.option.profit || {};
+              a.option.profit.commission = Math.max(0, Math.min(100, Math.round(100 - o.payout)));
+            }
+            // Enabled / suspended
+            if (o.enabled === false) { a.is_suspended = true; }
+            if (typeof o.min_bet === 'number') { a.minimal_bet = o.min_bet; a.minmax = a.minmax || {}; a.minmax.min = o.min_bet; }
+            if (typeof o.max_bet === 'number') { a.maximal_bet = o.max_bet; a.minmax = a.minmax || {}; a.minmax.max = o.max_bet; }
+          }
+        }
+      }
+
+      // Intercepta WebSocket.prototype onmessage — reescreve payload antes do WASM ver
+      var OrigWS = window.WebSocket;
+      function WrappedWS(url, protocols){
+        var ws = protocols === undefined ? new OrigWS(url) : new OrigWS(url, protocols);
+        var realAddEventListener = ws.addEventListener.bind(ws);
+        var realOnMessageDescriptor = Object.getOwnPropertyDescriptor(OrigWS.prototype, 'onmessage');
+
+        function rewriteEvent(origEvent){
+          var d = origEvent.data;
+          if (typeof d !== 'string') return origEvent;
+          if (d.indexOf('initialization-data') === -1 && d.indexOf('user-settings') === -1 && d.indexOf('isPortfolioHidden') === -1 && d.indexOf('lastDepositBonusStatus') === -1 && d.indexOf('marketing_data') === -1 && d.indexOf('depositBonusHintShown') === -1 && d.indexOf('customer-steps') === -1 && d.indexOf('"name":"profile"') === -1 && d.indexOf('profile-changed') === -1 && d.indexOf('user-profile-client') === -1 && d.indexOf('balance-changed') === -1 && d.indexOf('marginal-balance') === -1 && d.indexOf('"balances"') === -1 && d.indexOf('position-changed') === -1 && d.indexOf('positions-state') === -1) return origEvent;
+          try {
+            var patchedText = patchMobilePortfolioText(d);
+            if (patchedText !== d) {
+              return new MessageEvent('message', {
+                data: patchedText,
+                origin: origEvent.origin,
+                lastEventId: origEvent.lastEventId,
+                source: origEvent.source,
+                ports: origEvent.ports
+              });
+            }
+            var parsed = JSON.parse(d);
+            var gluePatched = window.__atlasPatchInit ? window.__atlasPatchInit(d) : d;
+            if (gluePatched !== d) {
+              return new MessageEvent('message', {
+                data: gluePatched,
+                origin: origEvent.origin,
+                lastEventId: origEvent.lastEventId,
+                source: origEvent.source,
+                ports: origEvent.ports
+              });
+            }
+            var changed = false;
+            if (parsed && parsed.name === 'initialization-data' && parsed.msg) {
+              applyToInit(parsed.msg);
+              window.__atlasPatchCount = (window.__atlasPatchCount || 0) + 1;
+              window.__atlasInitDataTime = Date.now();
+              try { window.__goBootPct = Math.max(window.__goBootPct || 0, 52); } catch(e){}
+              if (window.__goBootSplashPct) window.__goBootSplashPct(92, 'Abrindo...');
+              if (window.__goOpenTraderoomWhenReady) window.__goOpenTraderoomWhenReady();
+              console.log('[ATLAS-OV] patched initialization-data #' + window.__atlasPatchCount,
+                          'overrides=' + Object.keys(window.__atlasAssetOverrides||{}).length);
+              changed = true;
+            }
+            if (patchMobileUserSettingsMessage(parsed)) changed = true;
+            if (patchAnyDepositConfigs(parsed)) changed = true;
+            if (patchGoBalanceMessage(parsed)) changed = true;
+            if (patchAnyMobilePortfolioMessage(parsed)) changed = true;
+            if (!changed) return origEvent;
+            var newData = JSON.stringify(parsed);
+            return new MessageEvent('message', {
+              data: newData,
+              origin: origEvent.origin,
+              lastEventId: origEvent.lastEventId,
+              source: origEvent.source,
+              ports: origEvent.ports
+            });
+          } catch(e){}
+          return origEvent;
+        }
+
+        var _origSend = ws.send.bind(ws);
+        ws.send = function(data){
+          if (typeof data === 'string' && data.indexOf('set-user-settings') !== -1) {
+            try {
+              var parsed = JSON.parse(data);
+              var msg = parsed.msg || {};
+              if (msg.name === 'set-user-settings') {
+                var body = msg.body || msg;
+                var cfgChanged = patchDepositHintConfigs(body.configs);
+                if (window.__GO_IS_MOBILE) cfgChanged = patchMobilePortfolioConfig(body.configs) || cfgChanged;
+                if (cfgChanged) data = JSON.stringify(parsed);
+              }
+            } catch(e){}
+          }
+          return _origSend(data);
+        };
+
+        ws.addEventListener = function(type, listener, opts){
+          if (type === 'message' && typeof listener === 'function'){
+            var wrapped = function(ev){ return listener.call(this, rewriteEvent(ev)); };
+            return realAddEventListener(type, wrapped, opts);
+          }
+          return realAddEventListener(type, listener, opts);
+        };
+
+        // onmessage setter
+        Object.defineProperty(ws, 'onmessage', {
+          set: function(fn){
+            if (typeof fn === 'function'){
+              var wrapped = function(ev){ return fn.call(this, rewriteEvent(ev)); };
+              realOnMessageDescriptor.set.call(this, wrapped);
+            } else {
+              realOnMessageDescriptor.set.call(this, fn);
+            }
+          },
+          get: function(){ return realOnMessageDescriptor.get.call(this); },
+          configurable: true
+        });
+
+        return ws;
+      }
+      WrappedWS.prototype = OrigWS.prototype;
+      WrappedWS.CONNECTING = OrigWS.CONNECTING;
+      WrappedWS.OPEN = OrigWS.OPEN;
+      WrappedWS.CLOSING = OrigWS.CLOSING;
+      WrappedWS.CLOSED = OrigWS.CLOSED;
+      window.WebSocket = WrappedWS;
+    })();
+
+    // ===== VIP BADGE OVERLAY — badge "VIP" sobreposto ao avatar (estilo IQ Option) =====
+    // WASM renderiza no canvas; sobrepomos HTML absoluto só quando o traderoom carregou.
+    // Detectamos fim do preload via console.log hook ("Preload is completed").
+    (function(){
+      // Detecta quando o traderoom REAL está visível (não o preloader).
+      // Estratégia: hooks em console.log pra "Preload" + AGUARDA canvas com tamanho
+      // significativo + delay extra de 3s para garantir que chart renderizou.
+      window.__atlasWasmReady = false;
+      window.__atlasWasmReadyTime = 0;
+      var _origLog = console.log;
+      console.log = function(){
+        try {
+          for (var i=0;i<arguments.length;i++){
+            var a = arguments[i];
+            if (typeof a === 'string' && (a.indexOf('Preload is completed') !== -1 || a.indexOf('jsFirstPreloadIsCompleted') !== -1)) {
+              if (!window.__atlasWasmReady){
+                window.__atlasWasmReady = true;
+                window.__atlasWasmReadyTime = Date.now();
+                if (window.__goMarkTraderoomWarm) window.__goMarkTraderoomWarm();
+                if (window.__goBootSplashPct) window.__goBootSplashPct(78, 'Inicializando...');
+                try { window.__goBootPct = 78; window.__goBootPhase = 'init'; } catch(e){}
+              }
+            }
+          }
+        } catch(e){}
+        return _origLog.apply(console, arguments);
+      };
+      // Função auxiliar: traderoom está realmente renderizado (não o splash)?
+      // Sinal mais confiável: initialization-data foi processado (__atlasPatchCount>0)
+      // + delay extra pro render terminar.
+      window.__atlasFirstInitTime = Date.now();
+      function isTraderoomVisible(){
+        return window.__goShouldHideSplash ? window.__goShouldHideSplash() : false;
+      }
+      window.__atlasIsTraderoomVisible = isTraderoomVisible;
+      if (!window.__goSplashWaitStarted) {
+        window.__goSplashWaitStarted = true;
+        if (window.__goWaitTraderoomVisible) window.__goWaitTraderoomVisible();
+      }
+
+      var CSS = [
+        '#atlas-vip-badge{',
+        '  position:fixed;',
+        '  z-index:9999;',
+        '  width:26px;',
+        '  height:14px;',
+        '  border-radius:7px;',
+        '  background:linear-gradient(180deg,#ffe066 0%,#f3c215 100%);',
+        '  color:#171717;',
+        '  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;',
+        '  font-weight:900;',
+        '  font-size:9px;',
+        '  line-height:14px;',
+        '  letter-spacing:0.4px;',
+        '  text-align:center;',
+        '  display:none;',
+        '  box-shadow:0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.55);',
+        '  pointer-events:none;',
+        '  user-select:none;',
+        '}',
+        '#atlas-vip-badge.show{display:block;}',
+        '@keyframes atlas-vip-in{from{opacity:0;transform:scale(0.6)}to{opacity:1;transform:scale(1)}}',
+        '#atlas-vip-badge.show{animation:atlas-vip-in 0.25s ease;}'
+      ].join('');
+      // SELO VIP DESLIGADO: a plataforma nao trabalha com VIP. O resto deste bloco
+      // continua valendo — e ele que detecta quando o traderoom terminou de subir, sinal
+      // usado pelo splash, pela logo do topo e pela foto do cabecalho.
+      var VIP_LIGADO = false;
+      function ensureBadge(){
+        if (!VIP_LIGADO) return;
+        if (document.getElementById('atlas-vip-badge-css')) return;
+        var s = document.createElement('style');
+        s.id = 'atlas-vip-badge-css';
+        s.textContent = CSS;
+        document.head.appendChild(s);
+        var b = document.createElement('div');
+        b.id = 'atlas-vip-badge';
+        b.textContent = 'VIP';
+        b.title = 'Conta VIP';
+        if (document.body) document.body.appendChild(b);
+        else document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(b); });
+      }
+      function positionBadge(){
+        var el = document.getElementById('atlas-vip-badge');
+        if (!el) return;
+        // Avatar está no canto superior direito do canvas (após balance+depositar).
+        // Layout Atlas/Exnova desktop: de right pra left: Depositar (~115px) + margem (~15) + Balance (~var 90-180) + margem (~5) + Avatar circle (~32).
+        // Badge VIP deve sobrepor bottom-left do avatar (como IQ Option reference).
+        // Medimos a largura do balance via texto mas é arriscado (está no canvas).
+        // Estratégia: usar offset fixo ajustado por viewport — calibrado pro layout atual.
+        // Badge deve ficar à ESQUERDA do avatar (encostado/sobreposto na borda esquerda).
+        // Depositar (~115) + balance (~160) + avatar inteiro (~40) + um pouco = ~370 right
+        el.style.right = '378px';
+        el.style.top = '28px';
+      }
+      var _lastVip = null;
+      var _userIsVip = null; // cache do fetch
+      function refresh(){
+        if (!VIP_LIGADO) return;
+        ensureBadge();
+        positionBadge();
+        var el = document.getElementById('atlas-vip-badge');
+        if (!el) return;
+        // Se o traderoom NÃO está visível, força esconder
+        if (!isTraderoomVisible()) {
+          el.classList.remove('show');
+          _lastVip = null;
+          return;
+        }
+        // Traderoom visível. Fetch status se não tiver cache
+        if (_userIsVip === null) {
+          fetch('/api/user-vip-status', {credentials:'include'})
+            .then(function(r){ return r.ok ? r.json() : null; })
+            .then(function(j){
+              _userIsVip = !!(j && j.is_vip);
+              applyVis();
+            })
+            .catch(function(){});
+        } else {
+          applyVis();
+        }
+        function applyVis(){
+          if (_userIsVip !== _lastVip) {
+            _lastVip = _userIsVip;
+            el.classList.toggle('show', _userIsVip);
+          }
+        }
+      }
+      // Poll periodicamente o endpoint pra detectar mudança de VIP no DB
+      setInterval(function(){ _userIsVip = null; }, 60000);  // 60s (era 15s)
+      window.addEventListener('resize', positionBadge);
+      // Primeira verificação após WASM (mobile: mais tarde)
+      var vipDelay = window.__GO_IS_MOBILE ? 2500 : 800;
+      setTimeout(refresh, vipDelay);
+      setInterval(refresh, 30000);
+    })();
+
+    // Logo no topo esquerdo.
+    // O engine desenha a logo dentro do canvas, mas a ESCONDE quando o cabecalho fica
+    // estreito (medido: some abaixo de ~1310px). Nessa faixa quem mostra a marca e esta
+    // sobreposicao — sempre a arte INTEIRA e sempre no mesmo lugar.
+    //
+    // Antes ela ficava visivel em qualquer largura e, com a logo trocada pelo painel,
+    // aparecia duplicada por cima do desenho do engine. E os sprites quadrados do engine
+    // (o espaco compacto da tela estreita) ficam vazios de proposito — la uma logo
+    // horizontal so cabia cortada, o que deixava a marca partida no meio.
+    (function(){
+      if (window.__GO_IS_MOBILE) return;          // no mobile o cabecalho e outro
+      // Com uma LOGO COMPACTA enviada no painel, a arte quadrada foi gravada no atlas e o
+      // proprio engine desenha a marca no cabecalho estreito — como faz a plataforma de
+      // referencia. Nesse caso esta sobreposicao sai de cena; senao apareceriam as duas.
+      if (window.__ACM10_MARCA && window.__ACM10_MARCA.compacta) return;
+      var LARGURA_MINIMA_DO_ENGINE = 1310;        // acima disso o proprio canvas desenha
+      var LOGO = (window.__ACM10_MARCA && window.__ACM10_MARCA.logo) || '/tenants/globaloption.pro/logo_horizontal_white.png';
+      var img = document.createElement('img');
+      img.id = 'acm10-logo-overlay';
+      img.alt = '';
+      img.src = LOGO;
+      // A marca aparece EXATAMENTE com as cores originais do arquivo enviado no painel —
+      // sem nenhum filtro. (Antes, arte escura era clareada com invert(1) hue-rotate(180deg)
+      // para nao sumir no cabecalho escuro, mas isso mudava a cor da marca.)
+      img.style.cssText = 'position:fixed;left:14px;top:20px;height:26px;width:auto;max-width:200px;' +
+        'object-fit:contain;object-position:left center;z-index:2147483645;pointer-events:none;' +
+        'display:none';
+      img.onerror = function(){ this.style.display = 'none'; };
+
+      function ajusta(){
+        var w = window.innerWidth || 1200;
+        if (w >= LARGURA_MINIMA_DO_ENGINE) { img.style.display = 'none'; return; }
+        img.style.display = 'block';
+        // Encolhe um pouco em telas bem estreitas, mas nunca corta a arte.
+        if (w >= 1024)     { img.style.height = '26px'; img.style.maxWidth = '200px'; }
+        else if (w >= 820) { img.style.height = '24px'; img.style.maxWidth = '170px'; }
+        else               { img.style.height = '22px'; img.style.maxWidth = '140px'; }
+      }
+      function coloca(){ if (document.body && !img.parentNode) { document.body.appendChild(img); ajusta(); } }
+      if (document.body) coloca(); else document.addEventListener('DOMContentLoaded', coloca);
+      window.addEventListener('resize', ajusta);
+    })();
+
+    // Foto de perfil sobreposta ao circulo do avatar (cobre o canvas).
+    // Ligada/desligada pela chave __ACM10_FOTO_TRADEROOM, no topo do arquivo.
+    (function(){
+      if (!window.__ACM10_FOTO_TRADEROOM) return;   // desligada: fica o icone padrao do engine
+      var wrap = document.createElement('div');
+      wrap.id = 'go-header-avatar-wrap';
+      wrap.style.cssText = 'position:fixed;top:8px;z-index:2147483646;display:none;pointer-events:none;width:44px;height:44px';
+      var el = document.createElement('img');
+      el.id = 'go-header-avatar';
+      el.alt = '';
+      // sem contorno: a foto entra redonda, do mesmo tamanho do circulo do engine
+      el.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#39414d';
+      wrap.appendChild(el);
+      // O script roda no <head>: sem body ainda, o appendChild estourava e TODO este bloco
+      // (a foto de perfil do topo) nunca chegava a existir. Espera o body quando preciso.
+      if (document.body) document.body.appendChild(wrap);
+      else document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(wrap); });
+
+      // Onde o engine desenha o circulo do avatar? A posicao depende da largura do texto do
+      // saldo, entao NAO da para fixar um deslocamento. Lemos os pixels do canvas e achamos
+      // o circulo pela cor (fundo do cabecalho ~ (28,34,51), circulo do avatar ~ (57,62,77)).
+      // Onde o engine desenha o circulo do avatar? A posicao muda com a largura do texto
+      // do saldo (troca de conta real/demo, ganho/perda), entao NAO da para fixar. Lemos os
+      // pixels do canvas: uma LINHA e uma COLUNA (poucos KB, roda de 250ms sem pesar).
+      var COR_CIRCULO = [57, 62, 77], COR_FUNDO = [28, 34, 51], TOL = 14;
+      function ehCor(buf, i, cor){ return Math.abs(buf[i] - cor[0]) < TOL && Math.abs(buf[i+1] - cor[1]) < TOL && Math.abs(buf[i+2] - cor[2]) < TOL; }
+      function achaCirculo(){
+        try {
+          var c = document.querySelector('canvas');
+          if (!c || !c.width) return null;
+          var gl = c.getContext('webgl2') || c.getContext('webgl');
+          if (!gl) return null;
+          var dpr = window.devicePixelRatio || 1;
+          var larguraCss = Math.round(c.width / dpr);
+          var yMeio = 36;
+          var x0Css = Math.round(larguraCss * 0.45), x0 = Math.round(x0Css * dpr);
+          var largura = c.width - x0;
+          if (largura < 20) return null;
+          var linha = new Uint8Array(largura * 4);
+          gl.readPixels(x0, c.height - 1 - Math.round(yMeio * dpr), largura, 1, gl.RGBA, gl.UNSIGNED_BYTE, linha);
+          // Agrupa em BLOCOS separados por fundo. O avatar e o bloco que contem o cinza do
+          // circulo (a silhueta no meio nao pode quebrar a deteccao).
+          var blocos = [], atual = null, fundoSeguido = 0;
+          for (var i = 0; i < largura; i++) {
+            var fundo = ehCor(linha, i * 4, COR_FUNDO);
+            if (fundo) {
+              fundoSeguido++;
+              if (atual && fundoSeguido > 6 * dpr) { blocos.push(atual); atual = null; }
+            } else {
+              fundoSeguido = 0;
+              if (!atual) atual = { ini: i, fim: i, cinza: 0 };
+              atual.fim = i;
+              if (ehCor(linha, i * 4, COR_CIRCULO)) atual.cinza++;
+            }
+          }
+          if (atual) blocos.push(atual);
+          var avatar = null;
+          for (var k = 0; k < blocos.length; k++) {
+            var bl = blocos[k], larg = (bl.fim - bl.ini + 1) / dpr;
+            if (bl.cinza > 4 && larg > 24 && larg < 90) { avatar = bl; break; }   // o mais a ESQUERDA
+          }
+          if (!avatar) return null;
+          // borda do circulo = extremos do CINZA (a setinha ao lado e mais clara e fica de fora)
+          var ce = -1, cd = -1;
+          for (var q = avatar.ini; q <= avatar.fim; q++) if (ehCor(linha, q * 4, COR_CIRCULO)) { if (ce < 0) ce = q; cd = q; }
+          if (ce < 0) { ce = avatar.ini; cd = avatar.fim; }
+          var centroXCss = x0Css + ((ce + cd) / 2) / dpr;
+          var diametroCss = (cd - ce + 1) / dpr;
+          // coluna no centro: extensao vertical do mesmo bloco
+          var alturaFaixa = Math.min(c.height, Math.round(80 * dpr));
+          var coluna = new Uint8Array(alturaFaixa * 4);
+          gl.readPixels(Math.round(centroXCss * dpr), c.height - alturaFaixa, 1, alturaFaixa, gl.RGBA, gl.UNSIGNED_BYTE, coluna);
+          // vertical: SO o cinza do circulo (usar 'nao-fundo' pegava a linha do cabecalho
+          // e a altura saia maior que o circulo)
+          var topo = -1, base = -1;
+          for (var j = 0; j < alturaFaixa; j++) {
+            if (!ehCor(coluna, j * 4, COR_CIRCULO)) continue;
+            var yCss = (alturaFaixa - 1 - j) / dpr;
+            if (topo < 0 || yCss < topo) topo = yCss;
+            if (base < 0 || yCss > base) base = yCss;
+          }
+          var alturaCirc = base - topo + 1;
+          // o diametro horizontal e a medida confiavel; a vertical so ajusta o topo
+          var tamanho = diametroCss;
+          if (topo < 0 || alturaCirc < diametroCss * 0.7 || alturaCirc > diametroCss * 1.4) topo = yMeio - tamanho / 2;
+          else topo = topo + (alturaCirc - tamanho) / 2;
+          var folga = 2;   // cobre a borda clara do icone que aparecia atras da foto
+          return { left: Math.round(centroXCss - tamanho / 2) - folga, top: Math.round(topo) - folga, tamanho: Math.round(tamanho) + folga * 2 };
+        } catch (e) { return null; }
+      }
+
+      function positionAvatar(){
+        var pos = achaCirculo();
+        if (pos) {
+          if (wrap.__pos !== pos.left + ':' + pos.top + ':' + pos.tamanho) {
+            wrap.__pos = pos.left + ':' + pos.top + ':' + pos.tamanho;
+            wrap.style.left = pos.left + 'px'; wrap.style.right = 'auto';
+            wrap.style.top = pos.top + 'px';
+            wrap.style.width = pos.tamanho + 'px'; wrap.style.height = pos.tamanho + 'px';
+          }
+          return true;
+        }
+        var w = window.innerWidth || 1200;
+        wrap.style.left = 'auto'; wrap.style.right = (w < 768 ? 52 : 368) + 'px';
+        wrap.style.top = '12px'; wrap.style.width = '50px'; wrap.style.height = '50px';
+        return false;
+      }
+      // acompanha de perto: o icone se move ao trocar de conta (o texto do saldo muda de
+      // largura). Pausa quando a aba nao esta visivel.
+      setInterval(function(){
+        if (document.hidden || wrap.style.display === 'none') return;
+        positionAvatar();
+      }, 250);
+
+      function showAvatar(url){
+        if (!url || !/\/user_\d+/i.test(url)) { wrap.style.display = 'none'; return; }
+        el.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+        positionAvatar();
+        wrap.style.display = 'block';
+      }
+      function refreshAvatarOverlay(){
+        if (window.__atlasUserAvatar && /\/user_\d+/i.test(window.__atlasUserAvatar)) {
+          showAvatar(window.__atlasUserAvatar);
+          return;
+        }
+        fetch('/v1/avatars/current', {credentials:'include'})
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(j){
+            var res = (j && (j.result || j.data)) || j || {};
+            var url = res.url || res.image || res.thumbnail;
+            var thumbs = res.thumbnails;
+            if (thumbs && thumbs.length) {
+              var t = thumbs.find(function(x){ return x.size && x.size.width === 100; }) || thumbs[0];
+              if (t && t.url) url = t.url;
+            }
+            if (url && url.indexOf('http') !== 0) url = location.origin + (url.charAt(0) === '/' ? url : '/' + url);
+            if (url) window.__atlasUserAvatar = url;
+            showAvatar(url);
+          }).catch(function(){});
+      }
+      window.__goRefreshHeaderAvatar = refreshAvatarOverlay;
+      window.addEventListener('resize', positionAvatar);
+      setTimeout(refreshAvatarOverlay, 400);
+      setInterval(function(){ positionAvatar(); refreshAvatarOverlay(); }, 15000);
+      document.addEventListener('visibilitychange', function(){
+        if (document.visibilityState === 'visible') refreshAvatarOverlay();
+      });
+      setTimeout(refreshAvatarOverlay, 2000);
+      setTimeout(refreshAvatarOverlay, 6000);
+    })();
+
+    // (O contorno verde fixo no avatar quando o KYC era aprovado foi removido a pedido:
+    // a posicao fixa nao acompanhava o icone e sobrava um circulo verde solto no topo.)
+
+    // Bloqueia links externos + backdrop sólido no cashier WASM (sobre o traderoom)
+    (function(){
+      var DEP = '/deposit.html';
+      function depUrl(u){
+        if (typeof u !== 'string') return false;
+        var l = u.toLowerCase();
+        return l.indexOf('/build/index') !== -1 || l.indexOf('/frontend/build') !== -1
+          || l.indexOf('embedded=1') !== -1 || l.indexOf('/billing/') !== -1
+          || l.indexOf('cashbox') !== -1 || /\/(pt|en|es)\/(deposit|cashier)/i.test(u);
+      }
+      function goDep(){ if (location.pathname.indexOf('deposit.html') === -1) location.replace(DEP); }
+      function hookIframe(el){
+        if (!el || el.tagName !== 'IFRAME') return;
+        function chk(v){ if (depUrl(v)) goDep(); }
+        chk(el.getAttribute('src') || el.src || '');
+        try {
+          var obs = new MutationObserver(function(){ chk(el.getAttribute('src') || el.src || ''); });
+          obs.observe(el, { attributes: true, attributeFilter: ['src'] });
+        } catch(e){}
+      }
+      new MutationObserver(function(muts){
+        muts.forEach(function(m){
+          m.addedNodes.forEach(function(n){
+            if (n.nodeType !== 1) return;
+            if (n.tagName === 'IFRAME') hookIframe(n);
+            if (n.querySelectorAll) n.querySelectorAll('iframe').forEach(hookIframe);
+          });
+        });
+      }).observe(document.documentElement, {childList: true, subtree: true});
+      var _ce = Document.prototype.createElement;
+      Document.prototype.createElement = function(tag){
+        var el = _ce.apply(this, arguments);
+        if (String(tag).toLowerCase() === 'iframe') setTimeout(function(){ hookIframe(el); }, 0);
+        return el;
+      };
+
+      var SPA_SAME_TAB = /\/(pt|en|es)\/(profile|verification|withdraw|withdrawal|settings|history|operations|promo|transactions)(\/|$)/i;
+      var backdrop = null;
+      function showCashboxBackdrop(){
+        if (!backdrop) {
+          backdrop = document.createElement('div');
+          backdrop.id = 'acm10-cashbox-backdrop';
+          backdrop.style.cssText = 'position:fixed;left:0;right:0;bottom:0;top:0;z-index:9997;background:#0f1114;pointer-events:none;display:none';
+          document.body.appendChild(backdrop);
+        }
+        backdrop.style.display = 'block';
+      }
+      function hideCashboxBackdrop(){
+        if (backdrop) backdrop.style.display = 'none';
+      }
+      window.__acm10ShowCashboxBackdrop = showCashboxBackdrop;
+      window.__acm10HideCashboxBackdrop = hideCashboxBackdrop;
+      function isDepositClick(el){
+        for (var i = 0; i < 12 && el; i++, el = el.parentElement) {
+          var tid = el.getAttribute && el.getAttribute('data-test-id') || '';
+          if (/deposit-button|sidebar-deposit|header-deposit/i.test(tid)) return true;
+          var cls = (el.className && String(el.className)) || '';
+          if (/DepositButton|deposit-button/i.test(cls)) return true;
+        }
+        return false;
+      }
+      document.addEventListener('click', function(e){
+        if (isDepositClick(e.target)) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          location.href = '/deposit.html';
+          return false;
+        }
+      }, true);
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') hideCashboxBackdrop();
+      });
+      function prefetchSpaAssets(){
+        if (window.__GO_IS_MOBILE) {
+          function run(){
+            if (window.__atlasWasmReady || (window.__atlasPatchCount && window.__atlasPatchCount >= 1)) _doPrefetch();
+            else setTimeout(run, 300);
+          }
+          setTimeout(run, 800);
+          return;
+        }
+        _doPrefetch();
+      }
+      function _doPrefetch(){
+        ['/storage/vendor.0c83d31c534ca158d0b5.js','/storage/main.311b6d9dba567cdbff99.js'].forEach(function(href){
+          if(document.querySelector('link[rel="preload"][href="'+href+'"]'))return;
+          var l=document.createElement('link');
+          l.rel='preload';l.as='script';l.href=href;document.head.appendChild(l);
+        });
+      }
+      prefetchSpaAssets();
+      var BLOCKED_HOSTS = ['fintechfuel.com', 'avanpay', 'saasholding', 'mybroker.tech'];
+      function isBlockedExternal(url){
+        if (typeof url !== 'string') return false;
+        var u = url.toLowerCase();
+        for (var i = 0; i < BLOCKED_HOSTS.length; i++) {
+          if (u.indexOf(BLOCKED_HOSTS[i]) !== -1) return true;
+        }
+        return false;
+      }
+      function rewriteUrl(url){
+        if (typeof url !== 'string') return url;
+        if (isBlockedExternal(url)) return null;
+        // O engine abre o menu "Dados pessoais" com window.open('/profile'): mandamos
+        // para a pagina de perfil da plataforma.
+        if (/^\/profile\/?$/i.test(url)) return '/pt/profile/personal';
+        // "Prosseguir para a Verificacao" -> tela de envio de documentos.
+        if (/^\/(pt\/)?verification\/?$/i.test(url)) return '/pt/verification';
+        return url;
+      }
+      function isSpaSameTabUrl(u){
+        return typeof u==='string' && (SPA_SAME_TAB.test(u) || /\/(profile|withdraw|withdrawal|settings|verification)(\/|$)/i.test(u));
+      }
+      function navigateSpa(u){
+        if(typeof u!=='string')return;
+        if(u.charAt(0)!=='/'&&!/^https?:\/\//i.test(u))u='/'+u;
+        location.href=u;
+      }
+      var _open = window.open;
+      window.open = function(url){
+        var u = rewriteUrl(url);
+        if (u === null) return null;
+        if (isSpaSameTabUrl(u)) { navigateSpa(u); return null; }
+        if (u !== url) return _open.call(window, u, arguments[1] || '_blank', arguments[2]);
+        return _open.apply(window, arguments);
+      };
+      document.addEventListener('click', function(e){
+        var el = e.target;
+        for (var i = 0; i < 5 && el; i++, el = el.parentNode) {
+          if (el.tagName === 'A' && el.href) {
+            var u = rewriteUrl(el.href);
+            if (u === null) {
+              e.preventDefault(); e.stopPropagation();
+              return false;
+            }
+            if (u !== el.href) {
+              e.preventDefault(); e.stopPropagation();
+              if (isSpaSameTabUrl(u)) navigateSpa(u);
+              else window.open(u, '_blank', 'noopener');
+              return false;
+            }
+          }
+        }
+      }, true);
+    })();
+
+    // Logout real (mobile/desktop) — WASM boot continua com logout noop
+    (function(){
+      function doUserLogout(){
+        window.__goUserLogout = true;
+        window.__goAllowRealLogout = true;
+        window.__goAuthBlocked = true;
+        if (window.__atlasClearSsid) window.__atlasClearSsid();
+        try {
+          sessionStorage.removeItem('__go_ssid');
+          sessionStorage.removeItem('__go_traderoom_auth_fail');
+          sessionStorage.clear();
+          sessionStorage.setItem('__go_force_login', '1');
+        } catch (e) {}
+        var boot = document.getElementById('acm10-boot');
+        if (boot && boot.parentNode) boot.parentNode.removeChild(boot);
+        try { window.top.location.replace('/pt/login'); } catch (ex) {
+          if (window.__goNativeReplace) window.__goNativeReplace('/pt/login');
+          else location.href = '/pt/login';
+        }
+        fetch('/v1/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'X-Go-User-Logout': '1', 'Content-Type': 'application/json' }
+        }).catch(function(){});
+      }
+      function isLogoutClick(el){
+        for (var i = 0; i < 12 && el; i++, el = el.parentElement) {
+          var tid = el.getAttribute && el.getAttribute('data-test-id') || '';
+          if (/logout|sign-out|signout/i.test(tid)) return true;
+          var txt = (el.textContent || '').trim().toLowerCase();
+          if (txt === 'sair' || txt === 'logout' || txt === 'sign out') return true;
+        }
+        return false;
+      }
+      document.addEventListener('click', function(e){
+        if (!isLogoutClick(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        doUserLogout();
+        return false;
+      }, true);
+    })();
+
+    // Remove overlays antigos de logo (sem mascarar relogio do rodape)
+    (function(){
+      ['__go_hdr_mask','__go_hdr_logo','__go-brand-overlay','__go_ftr_link','__go_ftr_mask','__go_ftr_right_mask'].forEach(function(id){
+        var e=document.getElementById(id); if(e)e.remove();
+      });
+    })();
+    </script>
+    <!-- Auto-fill cashier nome+telefone do PIX BR (CPF é coletado em /deposit) -->
+    <script>
+    (function(){
+      function setReactValue(el, val){
+        if (!el || el.value === val) return;
+        var proto = el instanceof HTMLTextAreaElement
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype;
+        var setter = Object.getOwnPropertyDescriptor(proto, 'value');
+        if (setter && setter.set) setter.set.call(el, val);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      var _userPromise = null;
+      function getUser(){
+        if (!_userPromise) {
+          _userPromise = fetch('/v1/users/current/profile', {credentials:'include'})
+            .then(function(r){ return r.ok ? r.json() : null; })
+            .then(function(j){
+              var u = (j && (j.result || j.data)) || j || {};
+              var fname = (u.first_name || u.name || '').trim();
+              var lname = (u.last_name || '').trim();
+              var fullName = (fname + ' ' + lname).trim() || 'Cliente';
+              var raw = String(u.phone || '').replace(/\D/g,'');
+              if (raw.indexOf('55') === 0 && raw.length >= 12) raw = raw.slice(2);
+              if (raw.length > 11) raw = raw.slice(-11);
+              if (raw.length < 10) raw = '11999999999';
+              return { name: fullName, phone: '55' + raw };
+            }).catch(function(){ return { name: 'Cliente', phone: '5511999999999' }; });
+        }
+        return _userPromise;
+      }
+      function fieldWrapper(el){
+        for (var i = 0; i < 8 && el; i++, el = el.parentElement) {
+          var tid = el.getAttribute && el.getAttribute('data-test-id');
+          if (tid && /-wrapper-input$|field-/.test(tid)) return el;
+          if (el.className && /field|FormField|input-wrapper/i.test(el.className)) return el;
+        }
+        return el;
+      }
+      function processForm(phoneInput){
+        if (phoneInput.dataset.atlasFilled === '1') return;
+        var form = phoneInput.closest('form') || phoneInput.parentElement.parentElement.parentElement;
+        var inputs = (form || document).querySelectorAll('input[type="text"]:not([data-atlas-filled])');
+        var nameInput = null;
+        for (var k = 0; k < inputs.length; k++) {
+          var inp = inputs[k];
+          if (inp === phoneInput) break;
+          var ph = (inp.placeholder || '').toLowerCase();
+          if (ph.indexOf('promo') !== -1 || ph.indexOf('código') !== -1) continue;
+          nameInput = inp;
+        }
+        getUser().then(function(u){
+          if (nameInput) {
+            setReactValue(nameInput, u.name);
+            nameInput.dataset.atlasFilled = '1';
+            var w = fieldWrapper(nameInput); if (w && w.style) w.style.display = 'none';
+          }
+          setReactValue(phoneInput, u.phone);
+          phoneInput.dataset.atlasFilled = '1';
+          var w2 = fieldWrapper(phoneInput); if (w2 && w2.style) w2.style.display = 'none';
+        });
+      }
+      function scan(root){
+        if (!root || !root.querySelectorAll) return;
+        var nodes = root.querySelectorAll(
+          'input[placeholder*="5511999999999"], ' +
+          'input[placeholder*="13 dígitos"], ' +
+          'input[placeholder*="13 digitos"]'
+        );
+        for (var i = 0; i < nodes.length; i++) processForm(nodes[i]);
+      }
+      var pending = false;
+      var obs = new MutationObserver(function(muts){
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function(){
+          pending = false;
+          for (var i = 0; i < muts.length; i++) {
+            var m = muts[i];
+            for (var j = 0; j < m.addedNodes.length; j++) scan(m.addedNodes[j]);
+          }
+        });
+      });
+      function start(){
+        scan(document.body);
+        obs.observe(document.body, { childList: true, subtree: true });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+      } else { start(); }
+    })();
+    </script>
+    <!-- Google Tag Manager -->
+
+<!-- End Google Tag Manager -->
+    <script>
+    (function(){
+      var _brkTitle = (window.__ACM10_MARCA_NOME||'ACM10');
+      (window.__goBrokerConfigPromise || Promise.resolve(null)).then(function(d){
+        if(d&&d.success&&d.data&&d.data.broker&&d.data.broker.name){
+          var nm=(d.data.broker.name||'').trim();
+          _brkTitle=(nm&&!/global\s*option|exnova|my\s*broker|atlas/i.test(nm))?nm:(window.__ACM10_MARCA_NOME||'ACM10');
+        }
+        document.title=_brkTitle;
+        var m1=document.querySelector('meta[name="application-name"]'); if(m1)m1.content=_brkTitle;
+        var m2=document.querySelector('meta[name="apple-mobile-web-app-title"]'); if(m2)m2.content=_brkTitle;
+        if (window.__goLockAppName) window.__goLockAppName();
+      }).catch(function(){});
+      var _titleIv = window.__GO_IS_MOBILE ? 5000 : 400;
+      setInterval(function(){
+        if(/Global Option|Atlas Broker|Exnova|IQ Option|My ?Broker/i.test(document.title||'')) document.title=_brkTitle;
+        if (window.__goLockAppName) window.__goLockAppName();
+      },_titleIv);
+      document.addEventListener('visibilitychange',function(){document.title=_brkTitle;});
+    })();
+    </script>
+
+    <meta http-equiv="expires" content="0">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Broker QX</title>
+    <meta name="description" content="">
+
+    <link rel="manifest" href="/pwa/manifest.webmanifest" id="go-manifest">
+    <script>
+    (function(){
+      var pwa = window.__GO_PWA || window.__GO_IS_MOBILE;
+      if (!pwa) return;
+      var m = document.getElementById('go-manifest');
+      if (m) m.href = '/pwa/manifest.webmanifest?v=acm10';
+    })();
+    </script>
+    <script>
+    (function(){
+      var o = document.createElement('link');
+      o.rel = 'preconnect'; o.href = location.origin; o.crossOrigin = 'use-credentials';
+      document.head.appendChild(o);
+      var d = document.createElement('link');
+      d.rel = 'dns-prefetch'; d.href = '//' + location.hostname;
+      document.head.appendChild(d);
+    })();
+    </script>
+    <link rel="preload" href="/traderoom/atlas_generic4225b03f2.webp" as="image">
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content=(window.__ACM10_MARCA_NOME||'ACM10')>
+    <meta name="apple-mobile-web-app-title" content=(window.__ACM10_MARCA_NOME||'ACM10')>
+    <meta name="msapplication-starturl" content="/pwa/traderoom">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui, viewport-fit=cover">
+
+
+
+    <link rel="apple-touch-icon" href="/branding/favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/branding/favicon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/branding/favicon.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/branding/favicon.png">
+
+    <script>
+
+        function getCookie(name) {
+            var matches = document.cookie.match(new RegExp(
+                "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+            ));
+            return matches ? decodeURIComponent(matches[1]) : undefined
+        }
+
+        window.ssid = window.ssid || getCookie('ssid') || '';
+
+        function cookieDomain(){
+            var h = location.hostname;
+            if (h === 'localhost' || h === '127.0.0.1') return '';
+            if (h.indexOf('www.') === 0) h = h.slice(4);
+            if (!h || h.indexOf('.') < 0) return '';
+            return '; domain=' + h;
+        }
+
+        function ensureSsidCookie(val){
+            if (!val) return;
+            window.ssid = val;
+            var sec = location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = 'ssid=' + val + '; path=/; max-age=' + (7 * 24 * 3600) + '; SameSite=Lax' + sec + cookieDomain();
+        }
+
+        function goLoginAfterAuthFail(){
+            if (window.__goAuthBlocked) return;
+            window.__goAuthBlocked = true;
+            var ret = encodeURIComponent(location.pathname + location.search + location.hash);
+            location.replace('/pt/login?redirect_url=' + ret);
+        }
+
+        function applySessionData(j){
+            if (!j) return;
+            ensureSsidCookie((j.ssid || j.id) || getCookie('ssid'));
+            window.userId = j.user_id || j.userId;
+            try {
+                sessionStorage.removeItem('__go_traderoom_auth_fail');
+                sessionStorage.removeItem('__go_just_logged_in');
+            } catch (e) {}
+        }
+
+        (function(){
+            var qs = new URLSearchParams(location.search);
+            var boot = qs.get('go_ssid');
+            if (!boot) { try { boot = sessionStorage.getItem('__go_ssid'); } catch (e) {} }
+            if (boot) {
+                ensureSsidCookie(boot);
+                try { sessionStorage.setItem('__go_ssid', boot); } catch (e) {}
+                try {
+                    qs.delete('go_ssid');
+                    qs.delete('nocache');
+                    qs.delete('v');
+                    var clean = location.pathname + (qs.toString() ? '?' + qs.toString() : '') + location.hash;
+                    history.replaceState(null, '', clean);
+                } catch (e) {}
+            }
+
+            var ssid = getCookie('ssid') || window.ssid || '';
+            if (ssid) {
+                window.ssid = ssid;
+                try { sessionStorage.setItem('__go_ssid', ssid); } catch (e) {}
+            }
+
+            if (!ssid) {
+                fetch('/v4/sessions/current', { credentials: 'include' })
+                  .then(function(r){
+                    if (r.ok) return r.json().then(applySessionData);
+                    if (r.status === 401 || r.status === 403) goLoginAfterAuthFail();
+                  })
+                  .catch(function(){});
+                return;
+            }
+
+            fetch('/v4/sessions/current', { credentials: 'include' })
+              .then(function(r){ if (r.ok) return r.json().then(applySessionData); })
+              .catch(function(){});
+        })();
+
+        function setupCookie(name, value, options) {
+            options = options || {};
+
+            var expires = options.expires;
+
+            if (typeof expires == "number" && expires) {
+                var d = new Date();
+                d.setTime(d.getTime() + expires * 1000);
+                expires = options.expires = d;
+            }
+            if (expires && expires.toUTCString) {
+                options.expires = expires.toUTCString();
+            }
+
+            value = encodeURIComponent(value);
+
+            var updatedCookie = name + "=" + value;
+
+            for (var propName in options) {
+                updatedCookie += "; " + propName;
+                var propValue = options[propName];
+                if (propValue !== true) {
+                    updatedCookie += "=" + propValue;
+                }
+            }
+
+            document.cookie = updatedCookie;
+        }
+
+        function load(host) {
+            var resV = parseInt(window.__GO_CACHE_V || localStorage.getItem('__atlas_v') || '1783491935', 10);
+            let script = document.createElement('script');
+
+            script.src = host + "/toLoad.js?v=ff733a93bdbf47fde876e2ee47ae6b2f&r=" + resV + "&go=20260704j";
+
+
+            script.crossOrigin = "use-credentials";
+            script.onerror = function() {
+                //we can't load selected version
+                if (resHost !== orignHost) {
+                    //so trying to load default version
+                    resHost = orignHost;
+                    load(orignHost);
+                }
+            };
+
+            document.head.appendChild(script);
+        }
+
+		// Important! Same function in file in code/utils/AppInitUtils.cpp
+        function replaceHostSubdomain(url, subdomain)
+        {
+            subdomain = String(subdomain || '').trim();
+            let domains = url.split('.');
+
+            // Apex tenant (ex.: globaloption.pro): nunca prefixar subdomain igual ao rótulo do domínio
+            if (subdomain && domains.length <= 2 && domains[0].toLowerCase() === subdomain.toLowerCase()) {
+                subdomain = '';
+            }
+
+            if (domains.length <= 2 ||
+                domains[0] == 'int' || domains[0] == 'trade' || domains[0] == 'darkbot' || domains[0].startsWith("build"))
+            {
+                if (subdomain.length > 0)
+                    domains.splice(0, 0, subdomain);
+            }
+            else
+            {
+                if (subdomain.length > 0)
+                    domains[0] = subdomain;
+                else
+                    domains.splice(0, 1);
+            }
+            
+            let host = domains[0];
+            for (let n = 1; n < domains.length; n++)
+                host += '.' + domains[n];
+
+            return host;
+        }
+
+        var match;
+        var resHost = "/traderoom";
+        var orignHost = resHost;
+        var params = location.search;
+        var url = location.pathname;
+        let versionApiHost = location.protocol + "//" + replaceHostSubdomain(location.hostname, '');
+
+        // O engine monta URLs em SUBDOMINIOS da marca de origem: `//api.<host>`,
+        // `//auth.<host>/api/v4/check-session` (e por onde ele valida a sessao antes de
+        // subir) e `https://event.<host>/api/v1/events`. Aqui nao existe nenhum deles —
+        // o pedido morre em ERR_CONNECTION_REFUSED e, sem resposta do check-session, o
+        // app desiste e recarrega em laco (fica em "Inicializando..." para sempre).
+        // Devolvemos essas chamadas para a propria origem, que e onde o backend responde.
+        // Vale para fetch e para XMLHttpRequest — o engine usa os dois.
+        var _SUBDOM = /^https?:\/\/(api|auth|event|billing|static)\.[^/]+/i;
+        function _mesmaOrigem(u) {
+            return (typeof u === 'string' && _SUBDOM.test(u)) ? u.replace(_SUBDOM, location.origin) : u;
+        }
+        var _origFetch = window.fetch;
+        if (_origFetch) {
+            window.fetch = function(input, init) {
+                try {
+                    if (typeof input === 'string') input = _mesmaOrigem(input);
+                    else if (input && input.url) {
+                        var novo = _mesmaOrigem(input.url);
+                        if (novo !== input.url) input = new Request(novo, input);
+                    }
+                } catch (e) {}
+                return _origFetch.call(this, input, init);
+            };
+        }
+        var _origOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(metodo, url) {
+            try { arguments[1] = _mesmaOrigem(url); } catch (e) {}
+            return _origOpen.apply(this, arguments);
+        };
+
+        var urlhash = location.hash;
+        if (urlhash && history.replaceState)
+           history.replaceState(null, document.title, location.pathname + location.search);
+
+        if (!getCookie('release')) {
+            setupCookie('release', 'local', { path: '/', expires: 365 * 86400 });
+        }
+        function ensureMobileBootCookies(){
+            if (!window.__GO_IS_MOBILE && !window.__GO_PWA) return;
+            try {
+                document.cookie = 'platform=142; path=/; max-age=' + (365 * 86400) + '; SameSite=Lax';
+                document.cookie = 'go_mobile=1; path=/; max-age=86400; SameSite=Lax';
+            } catch (e) {}
+            var sid = window.ssid || getCookie('ssid') || '';
+            if (!sid) { try { sid = sessionStorage.getItem('__go_ssid') || ''; } catch (e) {} }
+            if (sid) ensureSsidCookie(sid);
+        }
+
+        function bootEngine() {
+            ensureMobileBootCookies();
+            window.__goReloadEngine = function() { load(resHost); };
+            load(resHost);
+        }
+        (function(){
+            var booted = false;
+            function go(){
+                if (booted || window.__goAuthBlocked) return;
+                booted = true;
+                ensureMobileBootCookies();
+                bootEngine();
+            }
+            var ssidBoot = window.ssid || getCookie('ssid') || '';
+            if (!ssidBoot) {
+              try { ssidBoot = sessionStorage.getItem('__go_ssid') || ''; } catch (e) {}
+            }
+            if (!ssidBoot) {
+              goLoginAfterAuthFail();
+              return;
+            }
+            window.ssid = ssidBoot;
+            ensureMobileBootCookies();
+            if (window.__goBootSplashPct) window.__goBootSplashPct(18, 'Conectando...');
+            var validate = window.__goAuthCheckPromise || fetch('/v4/sessions/current', { credentials: 'include' })
+              .then(function(r){
+                if (!r.ok) return null;
+                return r.json();
+              });
+            validate.then(function(j){
+              if (!j || window.__goAuthBlocked || (!j.user_id && !j.ssid && !j.id)) {
+                if (booted || window.__atlasPatchCount >= 1 || window.__atlasWasmReady) return;
+                window.__goAuthBlocked = true;
+                goLoginAfterAuthFail();
+                return;
+              }
+              applySessionData(j);
+              if (window.__goBootSplashPct) window.__goBootSplashPct(22, 'Inicializando...');
+              if (!booted) go();
+            }).catch(function(){
+              if (booted || window.__atlasPatchCount >= 1 || window.__atlasWasmReady) return;
+              window.__goAuthBlocked = true;
+              goLoginAfterAuthFail();
+            });
+        })();
+
+    </script>
+</head>
+    <body style="margin: 0; padding: 0; position: fixed; height: 100%; width: 100%;">
+        <!-- Google Tag Manager (noscript) -->
+
+<!-- End Google Tag Manager (noscript) -->
+        <script>
+            var _BROKER_NAME = window.__GO_BRAND || (window.__ACM10_MARCA_NOME||'ACM10');
+            document.title = _BROKER_NAME;
+            if (window.__goLockAppName) window.__goLockAppName();
+        </script>
+    </body>
+</html>
+</html>
